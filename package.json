@@ -6,22 +6,47 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "db:link:staging": "npx @insforge/cli link --project-id 9b2d7a95-44f3-43e1-8ca4-3eaad205536c",
+    "db:link:prod": "npx @insforge/cli link --project-id b268bd95-6123-40be-8f1d-9bd572806a38",
+    "db:migrate": "npx @insforge/cli db migrations up --all",
+    "db:status": "npx @insforge/cli current && npx @insforge/cli db migrations list"
   },
   "dependencies": {
+    "@clerk/nextjs": "^7.4.1",
+    "@insforge/sdk": "^1.2.10",
+    "@tanstack/react-query": "^5.100.14",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "date-fns": "^4.3.0",
+    "date-fns-tz": "^3.2.0",
+    "google-auth-library": "^10.6.2",
+    "googleapis": "^172.0.0",
+    "lucide-react": "^1.16.0",
     "next": "16.2.6",
+    "openai": "^6.39.0",
     "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "react-dom": "19.2.4",
+    "sonner": "^2.0.7",
+    "svix": "^1.94.0",
+    "tailwind-merge": "^3.6.0",
+    "twilio": "^6.0.2",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "autoprefixer": "^10.5.0",
     "babel-plugin-react-compiler": "1.0.0",
     "eslint": "^9",
     "eslint-config-next": "16.2.6",
-    "tailwindcss": "^4",
-    "typescript": "^5"
+    "postcss": "^8.5.15",
+    "tailwindcss": "3.4.17",
+    "tsx": "^4.22.3",
+    "typescript": "^5",
+    "vitest": "^4.1.7"
   }
 }

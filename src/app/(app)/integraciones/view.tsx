@@ -23,7 +23,7 @@ type IntegracionesData = {
   ics: { url: string };
 };
 
-export function IntegracionesView({ readOnly, webhookUrl }: { readOnly: boolean; webhookUrl: string }) {
+export function IntegracionesView({ readOnly }: { readOnly: boolean }) {
   const qc = useQueryClient();
   const { data, isLoading } = useQuery({
     queryKey: ["integraciones"],
@@ -58,12 +58,7 @@ export function IntegracionesView({ readOnly, webhookUrl }: { readOnly: boolean;
 
   return (
     <div className="space-y-6">
-      <Whatsapp
-        readOnly={readOnly}
-        webhookUrl={webhookUrl}
-        actual={data?.whatsapp ?? null}
-        onCambio={() => qc.invalidateQueries({ queryKey: ["integraciones"] })}
-      />
+      <Whatsapp readOnly={readOnly} />
       <Google
         readOnly={readOnly}
         google={data?.google ?? []}
@@ -81,32 +76,80 @@ export function IntegracionesView({ readOnly, webhookUrl }: { readOnly: boolean;
 
 // =================== WhatsApp ===================
 
-function Whatsapp({
-  readOnly,
-  webhookUrl,
-  actual,
-  onCambio,
-}: {
-  readOnly: boolean;
-  webhookUrl: string;
-  actual: { id: string; numero_whatsapp: string; activo: boolean } | null;
-  onCambio: () => void;
-}) {
-  const [numero, setNumero] = useState(actual?.numero_whatsapp ?? "");
-  const [sid, setSid] = useState("");
-  const [token, setToken] = useState("");
+type EstadoWA = {
+  numero_whatsapp: string;
+  estado_sender: string;
+  pais: string | null;
+  activo: boolean;
+} | null;
 
-  const guardar = useMutation({
+type NumeroDisp = { numero: string; amigable: string; pais: string };
+
+const PAISES = [
+  { code: "MX", label: "México" },
+  { code: "AR", label: "Argentina" },
+  { code: "CL", label: "Chile" },
+  { code: "CO", label: "Colombia" },
+  { code: "PE", label: "Perú" },
+  { code: "UY", label: "Uruguay" },
+  { code: "ES", label: "España" },
+  { code: "US", label: "Estados Unidos" },
+];
+
+const ETIQUETA_ESTADO_WA: Record<string, string> = {
+  sin_configurar: "No conectado",
+  creando: "Creando…",
+  pendiente_otp: "Esperando código",
+  en_revision: "En revisión de Meta",
+  online: "Conectado",
+  offline: "Offline",
+};
+
+function Whatsapp({ readOnly }: { readOnly: boolean }) {
+  const qc = useQueryClient();
+  const { data: estado, isLoading } = useQuery({
+    queryKey: ["whatsapp-estado"],
+    queryFn: () => apiFetch<EstadoWA>("/api/integraciones/whatsapp"),
+    refetchInterval: (q) => {
+      const e = (q.state.data as EstadoWA)?.estado_sender;
+      return e === "creando" || e === "en_revision" ? 8000 : false;
+    },
+  });
+
+  const [pais, setPais] = useState("MX");
+  const [verificacion, setVerificacion] = useState<"sms" | "voice">("sms");
+  const [seleccionado, setSeleccionado] = useState<string | null>(null);
+  const [codigo, setCodigo] = useState("");
+
+  const numeros = useQuery({
+    queryKey: ["whatsapp-numeros", pais],
+    queryFn: () => apiFetch<{ numeros: NumeroDisp[] }>(`/api/integraciones/whatsapp/numeros?pais=${pais}`),
+    enabled: false,
+  });
+
+  const provisionar = useMutation({
+    mutationFn: (numero: string) =>
+      apiFetch<{ numero: string; estado: string; requiereOtp: boolean }>(
+        "/api/integraciones/whatsapp/provisionar",
+        { method: "POST", body: JSON.stringify({ numero, pais, verificacion }) },
+      ),
+    onSuccess: (r) => {
+      toast.success(r.requiereOtp ? "Número reservado. Ingresá el código de verificación." : "Número conectado 🎉");
+      void qc.invalidateQueries({ queryKey: ["whatsapp-estado"] });
+    },
+    onError: (err) => toast.error(err instanceof Error ? err.message : "Error"),
+  });
+
+  const verificar = useMutation({
     mutationFn: () =>
-      apiFetch("/api/integraciones/whatsapp", {
+      apiFetch<{ estado: string }>("/api/integraciones/whatsapp/verificar", {
         method: "POST",
-        body: JSON.stringify({ numero_whatsapp: numero, twilio_account_sid: sid, twilio_auth_token: token }),
+        body: JSON.stringify({ codigo }),
       }),
-    onSuccess: () => {
-      toast.success("Integración WhatsApp guardada");
-      setSid("");
-      setToken("");
-      onCambio();
+    onSuccess: (r) => {
+      toast.success(r.estado === "online" ? "¡Conectado! 🎉" : `Estado: ${ETIQUETA_ESTADO_WA[r.estado] ?? r.estado}`);
+      setCodigo("");
+      void qc.invalidateQueries({ queryKey: ["whatsapp-estado"] });
     },
     onError: (err) => toast.error(err instanceof Error ? err.message : "Error"),
   });
@@ -115,97 +158,147 @@ function Whatsapp({
     mutationFn: () => apiFetch("/api/integraciones/whatsapp", { method: "DELETE" }),
     onSuccess: () => {
       toast.success("Desconectado");
-      setNumero("");
-      onCambio();
+      setSeleccionado(null);
+      void qc.invalidateQueries({ queryKey: ["whatsapp-estado"] });
     },
     onError: (err) => toast.error(err instanceof Error ? err.message : "Error"),
   });
 
+  const conectado = estado?.estado_sender === "online";
+  const enProceso = !!estado && estado.estado_sender !== "sin_configurar" && estado.estado_sender !== "online";
+
   return (
-    <Section
-      titulo="WhatsApp (Twilio)"
-      icon={MessageSquare}
-      conectado={!!actual?.activo}
-    >
-      <div className="space-y-3 text-sm text-slate-700">
-        <p>
-          Configurá tu sandbox de Twilio o tu número de WhatsApp Business y apuntá el webhook a:
-        </p>
-        <CopiarLinea texto={webhookUrl} />
-        <p className="text-xs text-slate-500">
-          En Twilio Console → Messaging → Settings → WhatsApp sandbox settings → &quot;When a message comes in&quot; → pegá esa URL con método POST.
-        </p>
-      </div>
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          guardar.mutate();
-        }}
-        className="mt-4 space-y-3"
-      >
-        <label className="block space-y-1.5">
-          <span className="text-sm font-medium">Número WhatsApp (formato E.164, ej. +14155238886)</span>
-          <input
-            type="text"
-            required
-            value={numero}
-            onChange={(e) => setNumero(e.target.value)}
-            disabled={readOnly}
-            placeholder="+14155238886"
-            className="input"
-          />
-        </label>
-        <div className="grid gap-3 md:grid-cols-2">
-          <label className="block space-y-1.5">
-            <span className="text-sm font-medium">Account SID</span>
-            <input
-              type="text"
-              required={!actual}
-              value={sid}
-              onChange={(e) => setSid(e.target.value)}
-              disabled={readOnly}
-              placeholder={actual ? "•••••••••• (sin cambios)" : "ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"}
-              className="input"
-            />
-          </label>
-          <label className="block space-y-1.5">
-            <span className="text-sm font-medium">Auth Token</span>
-            <input
-              type="password"
-              required={!actual}
-              value={token}
-              onChange={(e) => setToken(e.target.value)}
-              disabled={readOnly}
-              placeholder={actual ? "•••••••••• (sin cambios)" : "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"}
-              className="input"
-            />
-          </label>
-        </div>
-        <p className="text-xs text-slate-500">
-          Los tokens se cifran con AES-256-GCM antes de guardarse. Si dejás SID/Token vacíos al editar, mantenemos los actuales.
-        </p>
-        {!readOnly && (
-          <div className="flex items-center gap-2">
-            <button
-              type="submit"
-              disabled={guardar.isPending}
-              className="rounded-xl bg-brand-900 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-60"
-            >
-              {guardar.isPending ? "Guardando…" : actual ? "Actualizar" : "Conectar"}
-            </button>
-            {actual && (
+    <Section titulo="WhatsApp" icon={MessageSquare} conectado={conectado}>
+      {isLoading ? (
+        <p className="text-sm text-slate-500">Cargando…</p>
+      ) : conectado || enProceso ? (
+        // ---- Ya tiene número (conectado o en proceso) ----
+        <div className="space-y-3">
+          <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 p-3">
+            <div>
+              <p className="font-medium">{estado?.numero_whatsapp}</p>
+              <p className="text-xs text-slate-500">{ETIQUETA_ESTADO_WA[estado!.estado_sender] ?? estado!.estado_sender}</p>
+            </div>
+            {!readOnly && (
               <button
-                type="button"
-                onClick={() => desconectar.mutate()}
-                disabled={desconectar.isPending}
-                className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                onClick={() => {
+                  if (confirm("¿Desconectar y liberar el número? El agente dejará de responder.")) desconectar.mutate();
+                }}
+                className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-white"
               >
                 Desconectar
               </button>
             )}
           </div>
-        )}
-      </form>
+
+          {estado?.estado_sender === "pendiente_otp" && !readOnly && (
+            <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
+              <p className="text-sm text-amber-900">
+                Twilio envió un código por {verificacion === "voice" ? "llamada" : "SMS"} al número. Ingresalo:
+              </p>
+              <div className="mt-2 flex gap-2">
+                <input
+                  value={codigo}
+                  onChange={(e) => setCodigo(e.target.value)}
+                  inputMode="numeric"
+                  placeholder="Código"
+                  className="input max-w-[160px]"
+                />
+                <button
+                  onClick={() => verificar.mutate()}
+                  disabled={verificar.isPending || codigo.length < 4}
+                  className="rounded-xl bg-brand-900 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-60"
+                >
+                  {verificar.isPending ? "Verificando…" : "Verificar"}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {estado?.estado_sender === "en_revision" && (
+            <p className="text-sm text-slate-600">
+              Meta está revisando tu número. Puede tardar unos minutos a unas horas. Esta pantalla se actualiza sola.
+            </p>
+          )}
+        </div>
+      ) : (
+        // ---- Sin número: flujo de alta ----
+        <div className="space-y-4">
+          <p className="text-sm text-slate-700">
+            Te damos un número de WhatsApp dedicado para tu clínica. Los pacientes ven el nombre y logo de tu clínica — nada de nuestra marca.
+          </p>
+
+          {!readOnly && (
+            <>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label className="block space-y-1">
+                  <span className="text-sm font-medium">País del número</span>
+                  <select value={pais} onChange={(e) => setPais(e.target.value)} className="input">
+                    {PAISES.map((p) => (
+                      <option key={p.code} value={p.code}>{p.label}</option>
+                    ))}
+                  </select>
+                </label>
+                <label className="block space-y-1">
+                  <span className="text-sm font-medium">Verificación</span>
+                  <select value={verificacion} onChange={(e) => setVerificacion(e.target.value as "sms" | "voice")} className="input">
+                    <option value="sms">SMS</option>
+                    <option value="voice">Llamada de voz</option>
+                  </select>
+                </label>
+              </div>
+
+              <button
+                onClick={() => numeros.refetch()}
+                disabled={numeros.isFetching}
+                className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50"
+              >
+                {numeros.isFetching ? "Buscando…" : "Buscar números disponibles"}
+              </button>
+
+              {numeros.data && numeros.data.numeros.length > 0 && (
+                <div className="space-y-2">
+                  {numeros.data.numeros.map((n) => (
+                    <label
+                      key={n.numero}
+                      className={`flex cursor-pointer items-center gap-2 rounded-xl border p-3 text-sm ${
+                        seleccionado === n.numero ? "border-brand-600 bg-brand-50" : "border-slate-200"
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="numero"
+                        checked={seleccionado === n.numero}
+                        onChange={() => setSeleccionado(n.numero)}
+                      />
+                      <span className="font-medium">{n.numero}</span>
+                      <span className="text-slate-500">{n.amigable}</span>
+                    </label>
+                  ))}
+                  <button
+                    onClick={() => seleccionado && provisionar.mutate(seleccionado)}
+                    disabled={!seleccionado || provisionar.isPending}
+                    className="rounded-xl bg-brand-900 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-60"
+                  >
+                    {provisionar.isPending ? "Activando…" : "Activar este número"}
+                  </button>
+                </div>
+              )}
+              {numeros.data && numeros.data.numeros.length === 0 && (
+                <p className="text-sm text-slate-500">No hay números disponibles para ese país ahora. Probá otro.</p>
+              )}
+            </>
+          )}
+
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">
+            ¿Querés usar <strong>tu número actual</strong> de WhatsApp? La migración requiere pasos con Meta y puede demorar.{" "}
+            <a href="mailto:soporte@recepcionia.app?subject=Migrar%20mi%20número%20de%20WhatsApp" className="font-medium text-brand-700 hover:underline">
+              Contactanos
+            </a>{" "}
+            y lo hacemos por vos.
+          </div>
+        </div>
+      )}
     </Section>
   );
 }

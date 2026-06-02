@@ -1,10 +1,6 @@
 import type { InsForgeClient } from "@insforge/sdk";
 import type { IntegracionWhatsApp } from "@/core/entities/integraciones";
 
-export type IntegracionWhatsAppConOrg = IntegracionWhatsApp & {
-  organizaciones: { id: string; clerk_org_id: string; nombre_clinica: string; zona_horaria: string };
-};
-
 export function crearIntegracionWhatsAppRepo(client: InsForgeClient) {
   const tabla = () => client.database.from("integraciones_whatsapp");
 
@@ -22,23 +18,26 @@ export function crearIntegracionWhatsAppRepo(client: InsForgeClient) {
       if (error) throw error;
       return (data as IntegracionWhatsApp[] | null)?.[0] ?? null;
     },
-    async upsert(orgId: string, input: {
-      numero_whatsapp: string;
-      twilio_account_sid: string;
-      twilio_auth_token: string;
-      activo?: boolean;
-    }) {
+    /** Crea/actualiza la fila con datos del modelo ISV (sender). */
+    async guardar(
+      orgId: string,
+      input: Partial<{
+        numero_whatsapp: string;
+        sender_sid: string;
+        telefono_sid: string;
+        pais: string;
+        estado_sender: string;
+        activo: boolean;
+      }>,
+    ): Promise<IntegracionWhatsApp> {
       const existing = await this.buscarPorOrg(orgId);
       if (existing) {
-        const { data, error } = await tabla()
-          .update({ ...input, activo: input.activo ?? true })
-          .eq("id", existing.id)
-          .select("*");
+        const { data, error } = await tabla().update(input).eq("id", existing.id).select("*");
         if (error) throw error;
         return (data as IntegracionWhatsApp[])[0];
       }
       const { data, error } = await tabla()
-        .insert([{ ...input, organizacion_id: orgId, activo: input.activo ?? true }])
+        .insert([{ ...input, organizacion_id: orgId }])
         .select("*");
       if (error) throw error;
       return (data as IntegracionWhatsApp[])[0];

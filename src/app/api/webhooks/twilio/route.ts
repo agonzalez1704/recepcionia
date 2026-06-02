@@ -55,12 +55,19 @@ export async function POST(req: Request) {
     return xml(twimlVacio());
   }
 
-  // Validar firma con el authToken descifrado de la integración
-  let authToken: string;
-  try {
-    authToken = desencriptar(integracion.twilio_auth_token);
-  } catch (err) {
-    console.error("No se pudo descifrar auth token:", err);
+  // Modelo ISV: validar firma con el auth token de la cuenta parent (env).
+  // Compat: si la integración tiene token propio cifrado (modelo viejo), usarlo.
+  let authToken = env.TWILIO_AUTH_TOKEN;
+  if (!authToken && integracion.twilio_auth_token) {
+    try {
+      authToken = desencriptar(integracion.twilio_auth_token);
+    } catch (err) {
+      console.error("No se pudo descifrar auth token:", err);
+      return xml(twimlVacio(), 500);
+    }
+  }
+  if (!authToken) {
+    console.error("Sin auth token Twilio (ni parent ni por-org)");
     return xml(twimlVacio(), 500);
   }
   const firmaOk = validarFirmaTwilio(authToken, signature, url, paramsObj);
@@ -135,7 +142,10 @@ export async function POST(req: Request) {
   let contenido = inbound.body;
   let esVozTranscrita = false;
   if (inbound.media.length > 0) {
-    const accountSid = desencriptar(integracion.twilio_account_sid);
+    // Modelo ISV: usar SID parent. Compat: SID propio cifrado del modelo viejo.
+    const accountSid =
+      env.TWILIO_ACCOUNT_SID ||
+      (integracion.twilio_account_sid ? desencriptar(integracion.twilio_account_sid) : "");
 
     const imagenes = inbound.media.filter((m) => m.contentType.startsWith("image/")).slice(0, 4);
     const audios = inbound.media.filter((m) => m.contentType.startsWith("audio/")).slice(0, 2);

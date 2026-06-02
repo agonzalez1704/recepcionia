@@ -1,6 +1,8 @@
 import Link from "next/link";
-import { Settings, MessageSquare, Calendar, Plug, Users } from "lucide-react";
+import { Settings, MessageSquare, Calendar, Plug, Users, AlertTriangle } from "lucide-react";
 import { getActiveContextOrThrow } from "@/lib/tenant";
+import { getInsforgeAdmin } from "@/lib/insforge-admin";
+import { crearTurnoRepo } from "@/infra/insforge/repos/turno-repo";
 import { ProximosTurnos } from "./proximos-turnos";
 
 export const dynamic = "force-dynamic";
@@ -10,6 +12,9 @@ export default async function DashboardPage() {
   const org = ctx.organizacion;
   const configCompleta = !!(org.direccion && org.telefono && org.horarios.length > 0 && org.servicios.length > 0);
 
+  const turnoRepo = crearTurnoRepo(getInsforgeAdmin());
+  const aReagendar = await turnoRepo.listar(org.id, { estado: "necesita_reagendar" });
+
   return (
     <div className="space-y-8">
       <header>
@@ -18,6 +23,24 @@ export default async function DashboardPage() {
           Panel de control. Configurá tu clínica, conectá tus integraciones y revisá mensajes y turnos.
         </p>
       </header>
+
+      {aReagendar.length > 0 && (
+        <div className="flex items-start gap-3 rounded-2xl border border-orange-300 bg-orange-50 p-4 text-sm text-orange-900">
+          <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" />
+          <div>
+            <p className="font-semibold">
+              {aReagendar.length} turno{aReagendar.length > 1 ? "s" : ""} necesita{aReagendar.length > 1 ? "n" : ""} reagendarse
+            </p>
+            <p className="mt-0.5">
+              Bloqueaste esos horarios en tu Google Calendar y chocan con turnos confirmados.{" "}
+              <Link href="/turnos" className="font-semibold underline">
+                Revisalos en Turnos
+              </Link>{" "}
+              y contactá a los pacientes para reprogramar.
+            </p>
+          </div>
+        </div>
+      )}
 
       {!configCompleta && (
         <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">

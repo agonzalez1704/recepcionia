@@ -166,3 +166,92 @@ export async function resolverCalendarProvider(
   if (unificada?.activo) return crearCalendarProviderGoogle(unificada);
   return null;
 }
+
+// =================== Push notifications (sync entrante) ===================
+
+export type CambioEvento = {
+  id: string;
+  estado: string; // "confirmed" | "cancelled" | "tentative"
+  inicio: string | null;
+  fin: string | null;
+  titulo: string;
+};
+
+/**
+ * Registra un watch channel para recibir push de cambios del calendario.
+ * Devuelve channelId, resourceId y expiración (ms epoch).
+ */
+export async function registrarWatch(
+  integ: IntegracionGoogle,
+  webhookUrl: string,
+  channelId: string,
+): Promise<{ channelId: string; resourceId: string; expiration: string | null }> {
+  const auth = await clienteAutenticado(integ);
+  const cal = google.calendar({ version: "v3", auth });
+  const res = await cal.events.watch({
+    calendarId: integ.calendario_id,
+    requestBody: { id: channelId, type: "web_hook", address: webhookUrl },
+  });
+  return {
+    channelId,
+    resourceId: res.data.resourceId ?? "",
+    expiration: res.data.expiration ?? null,
+  };
+}
+
+/** Detiene un watch channel. */
+export async function detenerWatch(integ: IntegracionGoogle): Promise<void> {
+  if (!integ.canal_id || !integ.resource_id) return;
+  try {
+    const auth = await clienteAutenticado(integ);
+    const cal = google.calendar({ version: "v3", auth });
+    await cal.channels.stop({ requestBody: { id: integ.canal_id, resourceId: integ.resource_id } });
+  } catch (err) {
+    console.error("No se pudo detener watch:", err);
+  }
+}
+
+/**
+ * Trae los cambios desde el último syncToken. Devuelve eventos cambiados +
+ * nuevo syncToken. Si el token expiró (410), devuelve resyncRequerido=true.
+ */
+export async function listarCambios(
+  integ: IntegracionGoogle,
+): Promise<{ cambios: CambioEvento[]; nextSyncToken: string | null; resyncRequerido: boolean }> {
+  const auth = await clienteAutenticado(integ);
+  const cal = google.calendar({ version: "v3", auth });
+  try {
+    const params: Record<string, unknown> = {
+      calendarId: integ.calendario_id,
+      singleEvents: true,
+      showDeleted: true,
+      maxResults: 250,
+    };
+    if (integ.sync_token) {
+      params.syncToken = integ.sync_token;
+    } else {
+      // Primera vez: acotar a ventana futura para obtener un syncToken inicial.
+      params.timeMin = new Date().toISOString();
+    }
+    const res = await cal.events.list(params);
+    const items = res.data.items ?? [];
+    const cambios: CambioEvento[] = items
+      .filter((e) => e.id)
+      .map((e) => ({
+        id: e.id!,
+        estado: e.status ?? "confirmed",
+        inicio: e.start?.dateTime ?? null,
+        fin: e.end?.dateTime ?? null,
+        titulo: e.summary ?? "",
+      }));
+    return { cambios, nextSyncToken: res.data.nextSyncToken ?? null, resyncRequerido: false };
+  } catch (err: unknown) {
+    const code = (err as { code?: number; response?: { status?: number } }).code
+      ?? (err as { response?: { status?: number } }).response?.status;
+    if (code === 410) {
+      // syncToken inválido → hay que resincronizar desde cero.
+      return { cambios: [], nextSyncToken: null, resyncRequerido: true };
+    }
+    throw err;
+  }
+}

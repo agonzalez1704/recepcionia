@@ -1,6 +1,12 @@
 import { z } from "zod";
 
-export const EstadoTurnoSchema = z.enum(["pendiente", "confirmado", "cancelado", "completado"]);
+export const EstadoTurnoSchema = z.enum([
+  "pendiente",
+  "confirmado",
+  "cancelado",
+  "completado",
+  "necesita_reagendar",
+]);
 export type EstadoTurno = z.infer<typeof EstadoTurnoSchema>;
 
 export const TurnoSchema = z.object({

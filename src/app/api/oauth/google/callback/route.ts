@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { google } from "googleapis";
 import { crearClienteOAuth, verificarEstado } from "@/infra/google/oauth";
 import { crearIntegracionGoogleRepo } from "@/infra/insforge/repos/integracion-google-repo";
+import { activarWatch } from "@/infra/google/watch";
 import { crearOrganizacionRepo } from "@/infra/insforge/repos/organizacion-repo";
 import { encriptar } from "@/lib/crypto";
 import { getInsforgeAdmin } from "@/lib/insforge-admin";
@@ -56,7 +57,7 @@ export async function GET(req: Request) {
     if (!org) return errorRedirect("org_no_encontrada");
 
     const googleRepo = crearIntegracionGoogleRepo(admin);
-    await googleRepo.upsert(org.id, {
+    const integ = await googleRepo.upsert(org.id, {
       miembro_id: estado.miembroId,
       usuario_clerk_id: estado.userId,
       email_google: email,
@@ -65,6 +66,10 @@ export async function GET(req: Request) {
       calendario_id: "primary",
       expira_en: new Date(tokens.expiry_date).toISOString(),
     });
+
+    // Activar push notifications (sync entrante). Falla suave si el dominio no
+    // está verificado en Google Cloud — la integración igual sirve para sync saliente.
+    await activarWatch(admin, integ);
 
     return okRedirect(email);
   } catch (err) {

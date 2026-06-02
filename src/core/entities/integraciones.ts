@@ -38,6 +38,8 @@ export const IntegracionGoogleSchema = z.object({
   expira_en: z.string(),
   canal_id: z.string().nullable().optional(),
   resource_id: z.string().nullable().optional(),
+  sync_token: z.string().nullable().optional(),
+  canal_expira_en: z.string().nullable().optional(),
   activo: z.boolean(),
 });
 export type IntegracionGoogle = z.infer<typeof IntegracionGoogleSchema>;

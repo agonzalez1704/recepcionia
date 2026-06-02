@@ -53,6 +53,30 @@ export function crearIntegracionGoogleRepo(client: InsForgeClient) {
       const { error } = await tabla().update(input).eq("id", id);
       if (error) throw error;
     },
+    async buscarPorCanal(canalId: string, resourceId: string): Promise<IntegracionGoogle | null> {
+      const { data, error } = await tabla()
+        .select("*")
+        .eq("canal_id", canalId)
+        .eq("resource_id", resourceId);
+      if (error) throw error;
+      return (data as IntegracionGoogle[] | null)?.[0] ?? null;
+    },
+    async listarConCanalVencido(antesDeIso: string): Promise<IntegracionGoogle[]> {
+      const { data, error } = await tabla()
+        .select("*")
+        .eq("activo", true)
+        .not("canal_id", "is", null)
+        .lte("canal_expira_en", antesDeIso);
+      if (error) throw error;
+      return (data as IntegracionGoogle[] | null) ?? [];
+    },
+    async actualizarCanal(
+      id: string,
+      input: { canal_id?: string | null; resource_id?: string | null; canal_expira_en?: string | null; sync_token?: string | null },
+    ): Promise<void> {
+      const { error } = await tabla().update(input).eq("id", id);
+      if (error) throw error;
+    },
     async eliminar(id: string): Promise<void> {
       const { error } = await tabla().delete().eq("id", id);
       if (error) throw error;

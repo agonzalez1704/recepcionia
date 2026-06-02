@@ -19,6 +19,7 @@ const serverSchema = z.object({
   TWILIO_ACCOUNT_SID: z.string().optional().default(""),
   TWILIO_AUTH_TOKEN: z.string().optional().default(""),
   TWILIO_WABA_ID: z.string().optional().default(""),
+  CRON_SECRET: z.string().optional().default(""),
   // Stripe / billing
   STRIPE_ENV: z.enum(["test", "live"]).default("test"),
   STRIPE_PRICE_ESENCIAL: z.string().optional().default(""),

@@ -6,6 +6,7 @@ const ESTILOS: Record<EstadoTurno, string> = {
   confirmado: "bg-emerald-50 text-emerald-800 ring-emerald-200",
   cancelado: "bg-red-50 text-red-700 ring-red-200",
   completado: "bg-sky-50 text-sky-800 ring-sky-200",
+  necesita_reagendar: "bg-orange-100 text-orange-800 ring-orange-300",
 };
 
 const LABELS: Record<EstadoTurno, string> = {
@@ -13,6 +14,7 @@ const LABELS: Record<EstadoTurno, string> = {
   confirmado: "Confirmado",
   cancelado: "Cancelado",
   completado: "Completado",
+  necesita_reagendar: "⚠ Reagendar",
 };
 
 export function EstadoBadge({ estado }: { estado: EstadoTurno }) {

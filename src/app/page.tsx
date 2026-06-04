@@ -131,53 +131,100 @@ export default function LandingPage() {
       </section>
 
       {/* Precios */}
-      <section id="precios" className="border-t border-slate-100 bg-slate-50">
-        <div className="container py-24">
+      <section id="precios" className="relative overflow-hidden border-t border-slate-100 bg-white">
+        <div
+          className="pointer-events-none absolute left-1/2 top-0 h-[360px] w-[820px] -translate-x-1/2"
+          style={{ background: "radial-gradient(ellipse at center, rgba(56,189,248,0.14), transparent 70%)" }}
+        />
+        <div className="container relative py-24">
           <Eyebrow>Precios simples</Eyebrow>
-          <Titulo>Planes</Titulo>
-          <Subtitulo>Una fracción del costo de una recepcionista. Sin permanencia — cancelás cuando quieras.</Subtitulo>
-          <div className="mx-auto mt-14 grid max-w-5xl items-start gap-6 md:grid-cols-3">
-            {PLANES.map((plan) => (
-              <div
-                key={plan.id}
-                className={`relative rounded-3xl border bg-white p-7 transition ${
-                  plan.destacado
-                    ? "border-brand-600 shadow-xl shadow-brand-900/10 ring-1 ring-brand-600 md:-translate-y-2"
-                    : "border-slate-200 hover:border-brand-300"
-                }`}
-              >
-                {plan.destacado && (
-                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-brand-900 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-white">
-                    Más elegido
-                  </span>
-                )}
-                <h3 className="font-inter text-lg font-bold text-slate-900">{plan.nombre}</h3>
-                <p className="mt-1 text-sm text-slate-600">{plan.descripcion}</p>
-                <div className="mt-5 flex items-baseline gap-1">
-                  <span className="font-inter text-5xl font-extrabold tracking-tight text-slate-900">${plan.precioUsd}</span>
-                  <span className="text-slate-500">USD/mes</span>
-                </div>
-                <ul className="mt-6 space-y-2.5 text-sm">
-                  {plan.features.map((f) => (
-                    <li key={f} className="flex items-start gap-2 text-slate-700">
-                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-brand-600" /> {f}
-                    </li>
-                  ))}
-                </ul>
-                <Link
-                  href="/sign-up"
-                  className={`mt-7 block rounded-full px-4 py-2.5 text-center font-inter font-bold uppercase tracking-wide transition ${
-                    plan.destacado
-                      ? "bg-brand-900 text-white hover:bg-brand-700"
-                      : "border border-slate-300 text-slate-800 hover:border-brand-600 hover:text-brand-700"
+          <Titulo>Elegí tu plan</Titulo>
+          <Subtitulo>
+            Una fracción del costo de una recepcionista — sin sueldo, sin ausencias, 24/7. Sin permanencia.
+          </Subtitulo>
+
+          <div className="mx-auto mt-14 grid max-w-5xl items-stretch gap-6 md:grid-cols-3">
+            {PLANES.map((plan) => {
+              const dark = plan.destacado;
+              return (
+                <div
+                  key={plan.id}
+                  className={`relative flex flex-col rounded-3xl p-8 transition ${
+                    dark
+                      ? "bg-nest-fondo text-white shadow-2xl shadow-brand-900/30 ring-1 ring-nest-azul/40 md:-translate-y-3"
+                      : "border border-slate-200 bg-white hover:border-brand-300"
                   }`}
                 >
-                  Empezar
-                </Link>
-              </div>
+                  {dark && (
+                    <>
+                      <div
+                        className="pointer-events-none absolute inset-x-0 top-0 h-32 rounded-t-3xl"
+                        style={{ background: "radial-gradient(ellipse at top, rgba(56,189,248,0.3), transparent 70%)" }}
+                      />
+                      <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-nest-azul px-3 py-1 text-xs font-bold uppercase tracking-wide text-nest-fondo">
+                        Más elegido
+                      </span>
+                    </>
+                  )}
+
+                  <div className="relative">
+                    <h3 className={`font-inter text-lg font-bold ${dark ? "text-white" : "text-slate-900"}`}>
+                      {plan.nombre}
+                    </h3>
+                    <p className={`mt-1 text-sm ${dark ? "text-white/60" : "text-slate-600"}`}>{plan.descripcion}</p>
+
+                    <div className="mt-6 flex items-baseline gap-1">
+                      <span
+                        className={`font-inter text-5xl font-extrabold tracking-tight ${dark ? "text-white" : "text-slate-900"}`}
+                      >
+                        ${plan.precioUsd}
+                      </span>
+                      <span className={dark ? "text-white/50" : "text-slate-500"}>USD/mes</span>
+                    </div>
+
+                    {/* Métrica destacada */}
+                    <div
+                      className={`mt-4 inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold ${
+                        dark ? "bg-nest-azul/15 text-nest-azul" : "bg-brand-50 text-brand-700"
+                      }`}
+                    >
+                      <MessageSquare className="h-3.5 w-3.5" />
+                      {plan.topeConversaciones.toLocaleString("es-AR")} conversaciones / mes
+                    </div>
+
+                    <ul className="mt-6 space-y-2.5 text-sm">
+                      {plan.features.map((f) => (
+                        <li key={f} className={`flex items-start gap-2 ${dark ? "text-white/80" : "text-slate-700"}`}>
+                          <Check className={`mt-0.5 h-4 w-4 shrink-0 ${dark ? "text-nest-azul" : "text-brand-600"}`} /> {f}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <Link
+                    href="/sign-up"
+                    className={`relative mt-8 block rounded-full px-4 py-3 text-center font-inter font-bold uppercase tracking-wide transition ${
+                      dark
+                        ? "bg-nest-azul text-nest-fondo hover:brightness-110"
+                        : "border border-slate-300 text-slate-800 hover:border-brand-600 hover:text-brand-700"
+                    }`}
+                  >
+                    Empezar
+                  </Link>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Reaseguros */}
+          <div className="mx-auto mt-10 flex max-w-2xl flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-slate-600">
+            {["Sin permanencia", "Cancelás cuando quieras", "Soporte en español"].map((r) => (
+              <span key={r} className="inline-flex items-center gap-1.5">
+                <Check className="h-4 w-4 text-brand-600" /> {r}
+              </span>
             ))}
           </div>
-          <p className="mx-auto mt-8 max-w-2xl text-center text-xs text-slate-500">
+          <p className="mx-auto mt-6 max-w-2xl text-center text-xs text-slate-500">
             Los precios no incluyen los costos de conversación de WhatsApp (Meta), que se facturan por separado según tu
             volumen y país.
           </p>

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Plus_Jakarta_Sans } from "next/font/google";
+import { Plus_Jakarta_Sans, Inter, Instrument_Serif } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
 import { Toaster } from "sonner";
 import { QueryProvider } from "@/components/shared/query-provider";
@@ -7,6 +7,20 @@ import "./globals.css";
 
 const jakarta = Plus_Jakarta_Sans({
   variable: "--font-jakarta",
+  subsets: ["latin"],
+  display: "swap",
+});
+
+const inter = Inter({
+  variable: "--font-inter",
+  subsets: ["latin"],
+  display: "swap",
+});
+
+const instrument = Instrument_Serif({
+  variable: "--font-instrument",
+  weight: "400",
+  style: ["italic", "normal"],
   subsets: ["latin"],
   display: "swap",
 });
@@ -48,7 +62,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <ClerkProvider>
-      <html lang="es" className={`${jakarta.variable} h-full antialiased`}>
+      <html lang="es" className={`${jakarta.variable} ${inter.variable} ${instrument.variable} h-full antialiased`}>
         <body className="min-h-full flex flex-col font-sans bg-white text-slate-900">
           <QueryProvider>{children}</QueryProvider>
           <Toaster richColors position="top-right" />

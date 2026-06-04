@@ -16,9 +16,13 @@ const config: Config = {
           900: "#1E40AF",
         },
         salud: { 500: "#10B981", 600: "#059669" },
+        // Acento premium hero (CodeNest style)
+        nest: { verde: "#5ed29c", fondo: "#070b0a" },
       },
       fontFamily: {
         sans: ["var(--font-jakarta)", "system-ui", "sans-serif"],
+        inter: ["var(--font-inter)", "system-ui", "sans-serif"],
+        serif: ["var(--font-instrument)", "Georgia", "serif"],
       },
       borderRadius: { xl: "0.875rem", "2xl": "1.25rem" },
     },

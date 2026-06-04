@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { Clock, Calendar, Bot, Check, MessageSquare, Shield, Sparkles, Users } from "lucide-react";
+import { Clock, Calendar, Bot, Check, MessageSquare, Shield, Users } from "lucide-react";
 import { PLANES } from "@/core/billing/planes";
+import { Hero } from "./(marketing)/hero";
 
 const FAQ = [
   {
@@ -36,80 +37,9 @@ const FAQ = [
 export default function LandingPage() {
   return (
     <main className="flex-1">
-      <header className="sticky top-0 z-10 border-b border-slate-100 bg-white/80 backdrop-blur">
-        <div className="container flex items-center justify-between py-4">
-          <Link href="/" className="text-lg font-bold text-brand-900">
-            Recepción IA
-          </Link>
-          <nav className="flex items-center gap-3 text-sm">
-            <a href="#como-funciona" className="hidden text-slate-700 hover:text-brand-900 sm:inline">
-              Cómo funciona
-            </a>
-            <a href="#precios" className="hidden text-slate-700 hover:text-brand-900 sm:inline">
-              Precios
-            </a>
-            <a href="#faq" className="hidden text-slate-700 hover:text-brand-900 sm:inline">
-              FAQ
-            </a>
-            <Link href="/sign-in" className="text-slate-700 hover:text-brand-900">
-              Iniciar sesión
-            </Link>
-            <Link
-              href="/sign-up"
-              className="rounded-xl bg-brand-900 px-4 py-2 font-medium text-white hover:bg-brand-700"
-            >
-              Probar gratis
-            </Link>
-          </nav>
-        </div>
-      </header>
+      <Hero />
 
-      <section className="bg-gradient-to-b from-brand-50 to-white">
-        <div className="container py-20 text-center md:py-28">
-          <div className="mx-auto mb-6 inline-flex items-center gap-2 rounded-full border border-brand-200 bg-white px-4 py-1.5 text-sm font-medium text-brand-900">
-            <Sparkles className="h-4 w-4" /> Recepcionista virtual con IA
-          </div>
-          <h1 className="mx-auto max-w-3xl text-4xl font-bold tracking-tight text-slate-900 sm:text-6xl">
-            Tu consultorio,{" "}
-            <span className="bg-gradient-to-r from-brand-900 to-brand-600 bg-clip-text text-transparent">
-              siempre disponible
-            </span>
-          </h1>
-          <p className="mx-auto mt-6 max-w-2xl text-lg text-slate-600">
-            Atiende a tus pacientes por WhatsApp, agenda turnos y sincroniza tu calendario — automáticamente, las 24 horas.
-          </p>
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-            <Link
-              href="/sign-up"
-              className="rounded-xl bg-brand-900 px-6 py-3 font-medium text-white shadow-lg shadow-brand-900/20 transition hover:bg-brand-700"
-            >
-              Probar gratis
-            </Link>
-            <a
-              href="#como-funciona"
-              className="rounded-xl border border-slate-300 bg-white px-6 py-3 font-medium text-slate-800 hover:bg-slate-50"
-            >
-              Ver cómo funciona
-            </a>
-          </div>
-        </div>
-
-        {/* Demo mockup de conversación */}
-        <div className="container -mb-20 pb-12">
-          <div className="mx-auto max-w-md rounded-2xl border border-slate-200 bg-white p-4 shadow-2xl">
-            <div className="space-y-2 text-sm">
-              <Burbuja lado="user" texto="Hola, quería un turno para limpieza dental esta semana" />
-              <Burbuja lado="bot" texto="¡Hola! 😊 Te puedo ofrecer: jueves 10:00, viernes 14:30 o sábado 11:00. ¿Cuál te queda mejor?" />
-              <Burbuja lado="user" texto="Viernes 14:30 está perfecto" />
-              <Burbuja lado="bot" texto="Listo, ¿me decís tu nombre completo?" />
-              <Burbuja lado="user" texto="Juan Pérez" />
-              <Burbuja lado="bot" texto="✅ Confirmado, Juan. Te espero el viernes 14:30 para tu limpieza dental." />
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="container grid gap-6 py-32 md:grid-cols-3">
+      <section className="container grid gap-6 py-20 md:grid-cols-3">
         {[
           { icon: Clock, titulo: "Atención 24/7", texto: "Tus pacientes te escriben cuando quieran. La IA responde al toque." },
           { icon: Calendar, titulo: "Turnos automáticos", texto: "Agenda, confirma, reprograma y cancela. Todo sincronizado con tu calendario." },
@@ -272,20 +202,5 @@ export default function LandingPage() {
         © {new Date().getFullYear()} Recepción IA — Hecho con cariño para profesionales de la salud.
       </footer>
     </main>
-  );
-}
-
-function Burbuja({ lado, texto }: { lado: "user" | "bot"; texto: string }) {
-  const esUser = lado === "user";
-  return (
-    <div className={`flex ${esUser ? "justify-start" : "justify-end"}`}>
-      <div
-        className={`max-w-[80%] rounded-2xl px-3 py-2 ${
-          esUser ? "bg-slate-100 text-slate-800" : "bg-brand-50 text-brand-900"
-        }`}
-      >
-        {texto}
-      </div>
-    </div>
   );
 }

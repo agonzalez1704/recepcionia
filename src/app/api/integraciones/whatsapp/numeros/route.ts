@@ -15,7 +15,8 @@ export async function GET(req: Request) {
     const paisRaw = url.searchParams.get("pais") ?? "MX";
     const parsed = PAISES_OK.safeParse(paisRaw);
     if (!parsed.success) throw new HttpError(400, "pais_invalido", "País no soportado");
-    const numeros = await buscarNumerosDisponibles(parsed.data, 5);
+    const areaCode = (url.searchParams.get("areaCode") ?? "").replace(/\D/g, "").slice(0, 6) || undefined;
+    const numeros = await buscarNumerosDisponibles(parsed.data, 5, areaCode);
     return ok({ numeros });
   } catch (e) {
     return manejarError(e);

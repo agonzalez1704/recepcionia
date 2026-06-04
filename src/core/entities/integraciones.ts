@@ -22,6 +22,13 @@ export const IntegracionWhatsAppSchema = z.object({
   telefono_sid: z.string().nullable().optional(),
   pais: z.string().nullable().optional(),
   estado_sender: EstadoSenderSchema.default("sin_configurar"),
+  // Modelo Kapso
+  kapso_customer_id: z.string().nullable().optional(),
+  phone_number_id: z.string().nullable().optional(),
+  business_account_id: z.string().nullable().optional(),
+  display_phone_number: z.string().nullable().optional(),
+  connection_type: z.string().nullable().optional(),
+  webhook_secret: z.string().nullable().optional(),
   activo: z.boolean(),
 });
 export type IntegracionWhatsApp = z.infer<typeof IntegracionWhatsAppSchema>;

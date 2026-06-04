@@ -20,6 +20,10 @@ const serverSchema = z.object({
   TWILIO_AUTH_TOKEN: z.string().optional().default(""),
   TWILIO_WABA_ID: z.string().optional().default(""),
   CRON_SECRET: z.string().optional().default(""),
+  // Kapso (WhatsApp platform)
+  KAPSO_API_KEY: z.string().optional().default(""),
+  KAPSO_API_BASE_URL: z.string().optional().default("https://api.kapso.ai"),
+  KAPSO_PROJECT_WEBHOOK_SECRET: z.string().optional().default(""),
   // Stripe / billing
   STRIPE_ENV: z.enum(["test", "live"]).default("test"),
   STRIPE_PRICE_ESENCIAL: z.string().optional().default(""),

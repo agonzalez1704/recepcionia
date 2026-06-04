@@ -13,6 +13,11 @@ export function crearIntegracionWhatsAppRepo(client: InsForgeClient) {
       if (error) throw error;
       return (data as IntegracionWhatsApp[] | null)?.[0] ?? null;
     },
+    async buscarPorPhoneNumberId(phoneNumberId: string): Promise<IntegracionWhatsApp | null> {
+      const { data, error } = await tabla().select("*").eq("phone_number_id", phoneNumberId);
+      if (error) throw error;
+      return (data as IntegracionWhatsApp[] | null)?.[0] ?? null;
+    },
     async buscarPorOrg(orgId: string): Promise<IntegracionWhatsApp | null> {
       const { data, error } = await tabla().select("*").eq("organizacion_id", orgId);
       if (error) throw error;
@@ -27,6 +32,12 @@ export function crearIntegracionWhatsAppRepo(client: InsForgeClient) {
         telefono_sid: string;
         pais: string;
         estado_sender: string;
+        kapso_customer_id: string;
+        phone_number_id: string;
+        business_account_id: string;
+        display_phone_number: string;
+        connection_type: string;
+        webhook_secret: string;
         activo: boolean;
       }>,
     ): Promise<IntegracionWhatsApp> {

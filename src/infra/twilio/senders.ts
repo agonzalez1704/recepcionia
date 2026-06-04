@@ -20,12 +20,35 @@ export type NumeroDisponible = {
   pais: string;
 };
 
-/** Busca números disponibles con capacidad SMS+voz en un país. */
-export async function buscarNumerosDisponibles(pais: string, limite = 5): Promise<NumeroDisponible[]> {
+// Código de marcado por país (para armar el patrón `contains` de lada).
+const DIAL_CODE: Record<string, string> = {
+  MX: "52", AR: "54", CL: "56", CO: "57", PE: "51", UY: "598", US: "1", ES: "34",
+};
+
+/**
+ * Busca números disponibles con capacidad de voz en un país.
+ * `areaCode` (lada) es opcional. En US/CA usa el filtro nativo `areaCode`;
+ * en el resto se traduce a un patrón `contains` = +<dial><lada>*.
+ */
+export async function buscarNumerosDisponibles(
+  pais: string,
+  limite = 5,
+  areaCode?: string,
+): Promise<NumeroDisponible[]> {
   const client = parentClient();
-  const lista = await client
-    .availablePhoneNumbers(pais)
-    .local.list({ smsEnabled: true, voiceEnabled: true, limit: limite });
+  // MX (y otros países LATAM) no venden números con SMS por API; solo voz.
+  // WhatsApp/OTP funcionan con voz, así que no exigimos smsEnabled.
+  const filtro: Record<string, unknown> = { voiceEnabled: true, limit: limite };
+  const lada = areaCode?.replace(/\D/g, "");
+  if (lada) {
+    if (pais === "US") {
+      filtro.areaCode = Number(lada);
+    } else {
+      const dial = DIAL_CODE[pais] ?? "";
+      filtro.contains = `+${dial}${lada}*`;
+    }
+  }
+  const lista = await client.availablePhoneNumbers(pais).local.list(filtro);
   return lista.map((n) => ({ numero: n.phoneNumber, amigable: n.friendlyName, pais }));
 }
 

@@ -74,35 +74,22 @@ export function IntegracionesView({ readOnly }: { readOnly: boolean }) {
   );
 }
 
-// =================== WhatsApp ===================
+// =================== WhatsApp (Kapso) ===================
 
 type EstadoWA = {
-  numero_whatsapp: string;
+  numero_whatsapp: string | null;
   estado_sender: string;
-  pais: string | null;
-  activo: boolean;
+  connection_type: string | null;
+  conectado: boolean;
 } | null;
-
-type NumeroDisp = { numero: string; amigable: string; pais: string };
-
-const PAISES = [
-  { code: "MX", label: "México" },
-  { code: "AR", label: "Argentina" },
-  { code: "CL", label: "Chile" },
-  { code: "CO", label: "Colombia" },
-  { code: "PE", label: "Perú" },
-  { code: "UY", label: "Uruguay" },
-  { code: "ES", label: "España" },
-  { code: "US", label: "Estados Unidos" },
-];
 
 const ETIQUETA_ESTADO_WA: Record<string, string> = {
   sin_configurar: "No conectado",
-  creando: "Creando…",
-  pendiente_otp: "Esperando código",
+  creando: "Conexión en proceso",
+  pendiente_otp: "Esperando verificación",
   en_revision: "En revisión de Meta",
   online: "Conectado",
-  offline: "Offline",
+  offline: "Desconectado",
 };
 
 function Whatsapp({ readOnly }: { readOnly: boolean }) {
@@ -116,40 +103,24 @@ function Whatsapp({ readOnly }: { readOnly: boolean }) {
     },
   });
 
-  const [pais, setPais] = useState("MX");
-  const [verificacion, setVerificacion] = useState<"sms" | "voice">("sms");
-  const [seleccionado, setSeleccionado] = useState<string | null>(null);
-  const [codigo, setCodigo] = useState("");
-
-  const numeros = useQuery({
-    queryKey: ["whatsapp-numeros", pais],
-    queryFn: () => apiFetch<{ numeros: NumeroDisp[] }>(`/api/integraciones/whatsapp/numeros?pais=${pais}`),
-    enabled: false,
-  });
-
-  const provisionar = useMutation({
-    mutationFn: (numero: string) =>
-      apiFetch<{ numero: string; estado: string; requiereOtp: boolean }>(
-        "/api/integraciones/whatsapp/provisionar",
-        { method: "POST", body: JSON.stringify({ numero, pais, verificacion }) },
-      ),
-    onSuccess: (r) => {
-      toast.success(r.requiereOtp ? "Número reservado. Ingresá el código de verificación." : "Número conectado 🎉");
+  // Toast al volver del setup link de Kapso
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const wa = params.get("wa");
+    if (wa === "ok") {
+      toast.success("WhatsApp conectado 🎉 Puede tardar unos segundos en activarse.");
       void qc.invalidateQueries({ queryKey: ["whatsapp-estado"] });
-    },
-    onError: (err) => toast.error(err instanceof Error ? err.message : "Error"),
-  });
+    } else if (wa === "error") {
+      toast.error("No se pudo conectar WhatsApp. Probá de nuevo o pedinos ayuda.");
+    }
+    if (wa) window.history.replaceState({}, "", window.location.pathname);
+  }, [qc]);
 
-  const verificar = useMutation({
-    mutationFn: () =>
-      apiFetch<{ estado: string }>("/api/integraciones/whatsapp/verificar", {
-        method: "POST",
-        body: JSON.stringify({ codigo }),
-      }),
-    onSuccess: (r) => {
-      toast.success(r.estado === "online" ? "¡Conectado! 🎉" : `Estado: ${ETIQUETA_ESTADO_WA[r.estado] ?? r.estado}`);
-      setCodigo("");
-      void qc.invalidateQueries({ queryKey: ["whatsapp-estado"] });
+  const conectar = useMutation({
+    mutationFn: () => apiFetch<{ url: string }>("/api/integraciones/whatsapp/conectar", { method: "POST", body: "{}" }),
+    onSuccess: ({ url }) => {
+      window.location.assign(url);
     },
     onError: (err) => toast.error(err instanceof Error ? err.message : "Error"),
   });
@@ -158,150 +129,83 @@ function Whatsapp({ readOnly }: { readOnly: boolean }) {
     mutationFn: () => apiFetch("/api/integraciones/whatsapp", { method: "DELETE" }),
     onSuccess: () => {
       toast.success("Desconectado");
-      setSeleccionado(null);
       void qc.invalidateQueries({ queryKey: ["whatsapp-estado"] });
     },
     onError: (err) => toast.error(err instanceof Error ? err.message : "Error"),
   });
 
-  const conectado = estado?.estado_sender === "online";
-  const enProceso = !!estado && estado.estado_sender !== "sin_configurar" && estado.estado_sender !== "online";
+  const conectado = !!estado?.conectado;
+  const enProceso = !!estado && !conectado && estado.estado_sender !== "sin_configurar";
 
   return (
     <Section titulo="WhatsApp" icon={MessageSquare} conectado={conectado}>
       {isLoading ? (
         <p className="text-sm text-slate-500">Cargando…</p>
-      ) : conectado || enProceso ? (
-        // ---- Ya tiene número (conectado o en proceso) ----
-        <div className="space-y-3">
-          <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 p-3">
-            <div>
-              <p className="font-medium">{estado?.numero_whatsapp}</p>
-              <p className="text-xs text-slate-500">{ETIQUETA_ESTADO_WA[estado!.estado_sender] ?? estado!.estado_sender}</p>
-            </div>
-            {!readOnly && (
-              <button
-                onClick={() => {
-                  if (confirm("¿Desconectar y liberar el número? El agente dejará de responder.")) desconectar.mutate();
-                }}
-                className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-white"
-              >
-                Desconectar
-              </button>
-            )}
-          </div>
-
-          {estado?.estado_sender === "pendiente_otp" && !readOnly && (
-            <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
-              <p className="text-sm text-amber-900">
-                Twilio envió un código por {verificacion === "voice" ? "llamada" : "SMS"} al número. Ingresalo:
-              </p>
-              <div className="mt-2 flex gap-2">
-                <input
-                  value={codigo}
-                  onChange={(e) => setCodigo(e.target.value)}
-                  inputMode="numeric"
-                  placeholder="Código"
-                  className="input max-w-[160px]"
-                />
-                <button
-                  onClick={() => verificar.mutate()}
-                  disabled={verificar.isPending || codigo.length < 4}
-                  className="rounded-xl bg-brand-900 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-60"
-                >
-                  {verificar.isPending ? "Verificando…" : "Verificar"}
-                </button>
-              </div>
-            </div>
-          )}
-
-          {estado?.estado_sender === "en_revision" && (
-            <p className="text-sm text-slate-600">
-              Meta está revisando tu número. Puede tardar unos minutos a unas horas. Esta pantalla se actualiza sola.
+      ) : conectado ? (
+        <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 p-3">
+          <div>
+            <p className="font-medium">{estado?.numero_whatsapp ?? "Número conectado"}</p>
+            <p className="text-xs text-slate-500">
+              Conectado{estado?.connection_type ? ` · ${estado.connection_type === "coexistence" ? "coexistencia (mantenés la app)" : "dedicado"}` : ""}
             </p>
+          </div>
+          {!readOnly && (
+            <button
+              onClick={() => { if (confirm("¿Desconectar WhatsApp? El agente dejará de responder.")) desconectar.mutate(); }}
+              className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-white"
+            >
+              Desconectar
+            </button>
           )}
         </div>
       ) : (
-        // ---- Sin número: flujo de alta ----
         <div className="space-y-4">
           <p className="text-sm text-slate-700">
-            Te damos un número de WhatsApp dedicado para tu clínica. Los pacientes ven el nombre y logo de tu clínica — nada de nuestra marca.
+            Conectá el WhatsApp de tu clínica. Tus pacientes ven el nombre y logo de tu clínica. Podés usar tu número actual
+            (manteniendo la app de WhatsApp Business) o uno dedicado.
           </p>
 
-          {!readOnly && (
-            <>
-              <div className="grid gap-3 sm:grid-cols-2">
-                <label className="block space-y-1">
-                  <span className="text-sm font-medium">País del número</span>
-                  <select value={pais} onChange={(e) => setPais(e.target.value)} className="input">
-                    {PAISES.map((p) => (
-                      <option key={p.code} value={p.code}>{p.label}</option>
-                    ))}
-                  </select>
-                </label>
-                <label className="block space-y-1">
-                  <span className="text-sm font-medium">Verificación</span>
-                  <select value={verificacion} onChange={(e) => setVerificacion(e.target.value as "sms" | "voice")} className="input">
-                    <option value="sms">SMS</option>
-                    <option value="voice">Llamada de voz</option>
-                  </select>
-                </label>
-              </div>
-
-              <button
-                onClick={() => numeros.refetch()}
-                disabled={numeros.isFetching}
-                className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50"
-              >
-                {numeros.isFetching ? "Buscando…" : "Buscar números disponibles"}
-              </button>
-
-              {numeros.data && numeros.data.numeros.length > 0 && (
-                <div className="space-y-2">
-                  {numeros.data.numeros.map((n) => (
-                    <label
-                      key={n.numero}
-                      className={`flex cursor-pointer items-center gap-2 rounded-xl border p-3 text-sm ${
-                        seleccionado === n.numero ? "border-brand-600 bg-brand-50" : "border-slate-200"
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        name="numero"
-                        checked={seleccionado === n.numero}
-                        onChange={() => setSeleccionado(n.numero)}
-                      />
-                      <span className="font-medium">{n.numero}</span>
-                      <span className="text-slate-500">{n.amigable}</span>
-                    </label>
-                  ))}
-                  <button
-                    onClick={() => seleccionado && provisionar.mutate(seleccionado)}
-                    disabled={!seleccionado || provisionar.isPending}
-                    className="rounded-xl bg-brand-900 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-60"
-                  >
-                    {provisionar.isPending ? "Activando…" : "Activar este número"}
-                  </button>
-                </div>
-              )}
-              {numeros.data && numeros.data.numeros.length === 0 && (
-                <p className="text-sm text-slate-500">No hay números disponibles para ese país ahora. Probá otro.</p>
-              )}
-            </>
+          {enProceso && (
+            <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+              Conexión en proceso. Si abriste el asistente de Meta y lo cerraste sin terminar, volvé a intentar.
+            </div>
           )}
 
-          <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">
-            ¿Querés usar <strong>tu número actual</strong> de WhatsApp? La migración requiere pasos con Meta y puede demorar.{" "}
-            <a href="mailto:soporte@recepcionia.app?subject=Migrar%20mi%20número%20de%20WhatsApp" className="font-medium text-brand-700 hover:underline">
-              Contactanos
-            </a>{" "}
-            y lo hacemos por vos.
-          </div>
+          {!readOnly && (
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+              <button
+                onClick={() => conectar.mutate()}
+                disabled={conectar.isPending}
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-brand-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-60"
+              >
+                {conectar.isPending ? "Generando enlace…" : "Conectar WhatsApp"}
+              </button>
+              <a
+                href="mailto:soporte@recepcionia.app?subject=Ayuda%20para%20conectar%20mi%20WhatsApp"
+                className="text-sm font-medium text-brand-700 hover:underline"
+              >
+                ¿Necesitás ayuda? Te lo conectamos nosotros
+              </a>
+            </div>
+          )}
+
+          <details className="text-sm text-slate-600">
+            <summary className="cursor-pointer font-medium">¿Cómo es el proceso?</summary>
+            <ol className="mt-2 list-decimal space-y-1 pl-5">
+              <li>Tocás &quot;Conectar WhatsApp&quot; → te lleva al asistente seguro de Meta.</li>
+              <li>Iniciás sesión con Facebook y elegís tu número (existente o nuevo).</li>
+              <li>Verificás el número (~5 min) y volvés acá. Listo.</li>
+            </ol>
+            <p className="mt-2 text-xs text-slate-500">
+              Es un paso único que pide Meta para cualquier WhatsApp Business. Si te traba, escribinos y lo hacemos juntos.
+            </p>
+          </details>
         </div>
       )}
     </Section>
   );
 }
+
 
 // =================== Google ===================
 

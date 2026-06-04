@@ -16,8 +16,8 @@ const config: Config = {
           900: "#1E40AF",
         },
         salud: { 500: "#10B981", 600: "#059669" },
-        // Acento premium hero (CodeNest style)
-        nest: { verde: "#5ed29c", fondo: "#070b0a" },
+        // Acento premium hero (dark) — azul
+        nest: { azul: "#38bdf8", fondo: "#070b0a" },
       },
       fontFamily: {
         sans: ["var(--font-jakarta)", "system-ui", "sans-serif"],

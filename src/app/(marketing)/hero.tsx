@@ -67,7 +67,7 @@ function VideoFondo() {
       playsInline
       autoPlay
       preload="auto"
-      className="absolute inset-0 h-full w-full object-cover opacity-20"
+      className="absolute inset-0 h-full w-full object-cover opacity-[0.6]"
     />
   );
 }
@@ -117,9 +117,10 @@ export function Hero() {
     <header className="relative isolate min-h-[100svh] overflow-hidden bg-white text-slate-900">
       <VideoFondo />
 
-      {/* Wash claro sobre el video para legibilidad */}
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-white via-white/80 to-white/40" />
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/70 via-transparent to-white" />
+      {/* Wash claro: fuerte a la izquierda (texto), deja ver el video a la derecha */}
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-white via-white/75 to-white/10" />
+      {/* Transición al body blanco abajo */}
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-40 bg-gradient-to-b from-transparent to-white" />
 
       {/* Glow SVG suave */}
       <svg

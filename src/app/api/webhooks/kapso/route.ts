@@ -56,10 +56,10 @@ export async function GET(req: Request) {
       }
     }
   } catch (e) {
-    return Response.json({ error: String(e), insforge: env.NEXT_PUBLIC_INSFORGE_BASE_URL }, { status: 200 });
+    return Response.json({ error: String(e), insforge: process.env.NEXT_PUBLIC_INSFORGE_BASE_URL }, { status: 200 });
   }
   return Response.json({
-    insforge: env.NEXT_PUBLIC_INSFORGE_BASE_URL,
+    insforge: process.env.NEXT_PUBLIC_INSFORGE_BASE_URL,
     pnid,
     found,
     activo,

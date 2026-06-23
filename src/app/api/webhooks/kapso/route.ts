@@ -29,6 +29,49 @@ async function cargarOrg(admin: ReturnType<typeof getInsforgeAdmin>, orgId: stri
   return row ? OrganizacionSchema.parse(row) : null;
 }
 
+// Diagnóstico temporal: GET /api/webhooks/kapso?diag=<token>&pnid=<id>
+// No expone secretos, solo host + flags. Borrar después del test.
+export async function GET(req: Request) {
+  const env = getServerEnv();
+  const url = new URL(req.url);
+  if (url.searchParams.get("diag") !== (env.CRON_SECRET || "diag")) {
+    return new Response(null, { status: 200 });
+  }
+  const pnid = url.searchParams.get("pnid") ?? "";
+  const admin = getInsforgeAdmin();
+  let found = false;
+  let activo: boolean | null = null;
+  let secretOk: boolean | null = null;
+  let orgId: string | null = null;
+  try {
+    const integ = await crearIntegracionWhatsAppRepo(admin).buscarPorPhoneNumberId(pnid);
+    found = !!integ;
+    activo = integ?.activo ?? null;
+    orgId = integ?.organizacion_id ?? null;
+    if (integ?.webhook_secret) {
+      try {
+        secretOk = desencriptar(integ.webhook_secret).length > 0;
+      } catch {
+        secretOk = false;
+      }
+    }
+  } catch (e) {
+    return Response.json({ error: String(e), insforge: env.NEXT_PUBLIC_INSFORGE_BASE_URL }, { status: 200 });
+  }
+  return Response.json({
+    insforge: env.NEXT_PUBLIC_INSFORGE_BASE_URL,
+    pnid,
+    found,
+    activo,
+    orgId,
+    secretDescifrable: secretOk,
+    tieneOpenAI: !!env.OPENAI_API_KEY,
+    tieneKapso: !!env.KAPSO_API_KEY,
+    billingDisabled: env.BILLING_DISABLED,
+    stripeEnv: env.STRIPE_ENV,
+  });
+}
+
 export async function POST(req: Request) {
   const env = getServerEnv();
   const raw = await req.text();

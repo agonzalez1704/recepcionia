@@ -21,11 +21,23 @@ function formatearFechaLocal(iso: string, tz: string): string {
 function resolverMiembro(miembros: Miembro[], nombre?: string): Miembro | null {
   if (!nombre) return null;
   const n = nombre.trim().toLowerCase();
-  return (
+  // 1) match exacto  2) substring en cualquier dirección
+  const directo =
     miembros.find((m) => m.nombre.toLowerCase() === n) ??
-    miembros.find((m) => m.nombre.toLowerCase().includes(n) || n.includes(m.nombre.toLowerCase())) ??
-    null
-  );
+    miembros.find((m) => m.nombre.toLowerCase().includes(n) || n.includes(m.nombre.toLowerCase()));
+  if (directo) return directo;
+
+  // 3) match por tokens: el paciente puede decir solo apellido o nombre
+  //    ("Carmona", "Dr Guillermo"). Ignoramos títulos genéricos.
+  const STOP = new Set(["dr", "dra", "doctor", "doctora", "lic", "el", "la", "de"]);
+  const tokensQuery = n.split(/\s+/).filter((t) => t.length >= 3 && !STOP.has(t));
+  if (tokensQuery.length === 0) return null;
+  const candidatos = miembros.filter((m) => {
+    const tokensNombre = m.nombre.toLowerCase().split(/\s+/).filter((t) => !STOP.has(t));
+    return tokensQuery.some((q) => tokensNombre.some((t) => t === q || t.startsWith(q) || q.startsWith(t)));
+  });
+  // Solo resolvemos si es inequívoco (un único profesional coincide).
+  return candidatos.length === 1 ? candidatos[0] : null;
 }
 
 function ctxMiembro(_ctx: ToolContext, miembros: Miembro[], nombre?: string): Miembro | null {
@@ -140,7 +152,7 @@ export function agendarTurnoTool(deps: DepsTools): ToolDef<
   return {
     nombre: "agendar_turno",
     descripcion:
-      "Agenda un turno nuevo. Devuelve ok=false si el horario está ocupado para el profesional indicado. La fecha debe ser ISO 8601 con timezone. SIEMPRE incluí 'nombre_paciente' (preguntalo si no lo sabés) y 'notas' (resumen breve del motivo/síntomas que mencionó el paciente).",
+      "Agenda un turno nuevo. Devuelve ok=false si el horario está ocupado para el profesional indicado. La fecha debe ser ISO 8601 con timezone. SIEMPRE incluí 'nombre_paciente' (preguntalo si no lo sabés), 'notas' (resumen breve del motivo/síntomas) y 'miembro' (nombre exacto del profesional con quien se agenda, salvo que la clínica no tenga profesionales cargados).",
     parametros: {
       type: "object",
       properties: {

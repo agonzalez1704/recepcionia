@@ -29,6 +29,49 @@ async function cargarOrg(admin: ReturnType<typeof getInsforgeAdmin>, orgId: stri
   return row ? OrganizacionSchema.parse(row) : null;
 }
 
+type MensajeExtraido = {
+  numeroPaciente: string;
+  contenido: string;
+  esVozTranscrita: boolean;
+  adjuntos: AdjuntoEntrante[];
+};
+
+// Extrae el contenido de UN evento whatsapp.message.received (texto / audio / imagen).
+async function extraerMensaje(ev: Record<string, unknown>, apiKey: string): Promise<MensajeExtraido> {
+  const msg = (ev.message ?? {}) as {
+    type?: string;
+    text?: { body?: string };
+    kapso?: { content?: string; transcript?: { text?: string }; media_url?: string; media_data?: { content_type?: string } };
+  };
+  const conv = (ev.conversation ?? {}) as { phone_number?: string };
+  const numeroPaciente = conv.phone_number ?? "";
+
+  const esAudio = msg.type === "audio";
+  const transcript = msg.kapso?.transcript?.text;
+  let contenido = msg.text?.body ?? "";
+  if (esAudio && transcript) contenido = transcript;
+  if (!contenido && msg.kapso?.content) contenido = msg.kapso.content;
+
+  const adjuntos: AdjuntoEntrante[] = [];
+  if (msg.type === "image" && msg.kapso?.media_url) {
+    try {
+      const r = await fetch(msg.kapso.media_url, {
+        headers: { "X-API-Key": apiKey },
+        signal: AbortSignal.timeout(15_000),
+      });
+      if (r.ok) {
+        const tipo = msg.kapso.media_data?.content_type ?? r.headers.get("content-type") ?? "image/jpeg";
+        const buf = Buffer.from(await r.arrayBuffer());
+        adjuntos.push({ tipo, dataUrl: `data:${tipo};base64,${buf.toString("base64")}` });
+      }
+    } catch (err) {
+      console.error("No se pudo descargar media Kapso:", err);
+    }
+  }
+
+  return { numeroPaciente, contenido, esVozTranscrita: esAudio && !!transcript, adjuntos };
+}
+
 // Diagnóstico temporal: GET /api/webhooks/kapso?diag=<token>&pnid=<id>
 // No expone secretos, solo host + flags. Borrar después del test.
 export async function GET(req: Request) {
@@ -130,13 +173,18 @@ export async function POST(req: Request) {
 
   // -------- Mensaje entrante (phone-number webhook) --------
   if (evento === "whatsapp.message.received") {
-    const phoneNumberId = String(payload.phone_number_id ?? "");
+    // Soporta entrega simple y batch (buffering): { batch:true, data:[ev,...] }.
+    // Mensajes rápidos del mismo paciente se juntan en un solo turno del agente.
+    const esBatch = payload.batch === true && Array.isArray(payload.data);
+    const eventos = (esBatch ? payload.data : [payload]) as Record<string, unknown>[];
+
+    const phoneNumberId = String(payload.phone_number_id ?? eventos[0]?.phone_number_id ?? "");
     if (!phoneNumberId) return new Response(null, { status: 200 });
 
     const integ = await repo.buscarPorPhoneNumberId(phoneNumberId);
     if (!integ || !integ.activo) return new Response(null, { status: 200 });
 
-    // Verificar firma con el secret del webhook de este número
+    // Verificar firma sobre el body crudo (cubre simple y batch)
     const secret = integ.webhook_secret ? desencriptar(integ.webhook_secret) : "";
     if (!firmaValida(secret, raw, firma)) {
       console.warn("Webhook Kapso: firma de mensaje inválida");
@@ -146,39 +194,14 @@ export async function POST(req: Request) {
     const org = await cargarOrg(admin, integ.organizacion_id);
     if (!org) return new Response(null, { status: 200 });
 
-    // Extraer datos del mensaje
-    const msg = (payload.message ?? {}) as {
-      type?: string;
-      text?: { body?: string };
-      kapso?: { content?: string; transcript?: { text?: string }; media_url?: string; media_data?: { content_type?: string } };
-    };
-    const conv = (payload.conversation ?? {}) as { phone_number?: string };
-    const numeroPaciente = conv.phone_number ?? "";
+    // Extraer cada evento y fusionarlos en un turno
+    const extraidos = await Promise.all(eventos.map((ev) => extraerMensaje(ev, env.KAPSO_API_KEY)));
+    const numeroPaciente = extraidos.find((e) => e.numeroPaciente)?.numeroPaciente ?? "";
     if (!numeroPaciente) return new Response(null, { status: 200 });
 
-    const esAudio = msg.type === "audio";
-    const transcript = msg.kapso?.transcript?.text;
-    let contenido = msg.text?.body ?? "";
-    if (esAudio && transcript) contenido = transcript;
-    if (!contenido && msg.kapso?.content) contenido = msg.kapso.content;
-
-    // Imagen → vision: descargar media_url (público de Kapso) como data URL
-    const adjuntos: AdjuntoEntrante[] = [];
-    if (msg.type === "image" && msg.kapso?.media_url) {
-      try {
-        const r = await fetch(msg.kapso.media_url, {
-          headers: { "X-API-Key": env.KAPSO_API_KEY },
-          signal: AbortSignal.timeout(15_000),
-        });
-        if (r.ok) {
-          const tipo = msg.kapso.media_data?.content_type ?? r.headers.get("content-type") ?? "image/jpeg";
-          const buf = Buffer.from(await r.arrayBuffer());
-          adjuntos.push({ tipo, dataUrl: `data:${tipo};base64,${buf.toString("base64")}` });
-        }
-      } catch (err) {
-        console.error("No se pudo descargar media Kapso:", err);
-      }
-    }
+    const contenido = extraidos.map((e) => e.contenido).filter(Boolean).join("\n");
+    const adjuntos = extraidos.flatMap((e) => e.adjuntos);
+    const esVozTranscrita = extraidos.some((e) => e.esVozTranscrita);
 
     // Gating: suscripción activa + tope
     const usadas = await crearMensajeRepo(admin).contarEntrantesDesde(org.id, inicioMesActualIso());
@@ -197,12 +220,7 @@ export async function POST(req: Request) {
     }
 
     try {
-      const respuesta = await procesar.procesar({
-        numeroPaciente,
-        contenido,
-        adjuntos,
-        esVozTranscrita: esAudio && !!transcript,
-      });
+      const respuesta = await procesar.procesar({ numeroPaciente, contenido, adjuntos, esVozTranscrita });
       await enviarTexto(phoneNumberId, numeroPaciente, respuesta);
     } catch (err) {
       console.error("Error procesando mensaje Kapso:", err);

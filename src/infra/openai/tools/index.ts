@@ -144,7 +144,7 @@ export function agendarTurnoTool(deps: DepsTools): ToolDef<
     parametros: {
       type: "object",
       properties: {
-        nombre_paciente: { type: "string", description: "Nombre completo del paciente. Obligatorio. Si no lo tenés, preguntalo antes de llamar a esta tool." },
+        nombre_paciente: { type: "string", description: "Nombre completo del paciente. Obligatorio. Si no lo tienes, pregúntalo antes de llamar a esta tool." },
         fecha_turno: { type: "string", description: "ISO 8601 con timezone" },
         servicio: { type: "string", description: "Servicio solicitado" },
         notas: { type: "string", description: "Resumen breve del motivo de consulta o síntomas mencionados por el paciente (ej. 'dolor de panza desde ayer', 'control anual', 'limpieza dental')." },

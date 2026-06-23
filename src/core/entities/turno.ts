@@ -48,6 +48,7 @@ export const ActualizarTurnoSchema = z
     nombre_paciente: z.string().optional(),
     servicio: z.string().optional(),
     miembro_id: z.string().uuid().nullable().optional(),
+    google_event_id: z.string().nullable().optional(),
   })
   .strict();
 export type ActualizarTurno = z.infer<typeof ActualizarTurnoSchema>;

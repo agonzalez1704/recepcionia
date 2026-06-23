@@ -96,8 +96,8 @@ export function crearAgendarTurnoService(deps: AgendarTurnoDeps) {
             titulo: `${turno.servicio} — ${turno.nombre_paciente}`,
             descripcion: `Paciente: ${turno.nombre_paciente}\nTeléfono: ${turno.numero_telefono}\n${turno.notas ?? ""}`,
           });
-          const actualizado = await turnoRepo.actualizar(organizacion.id, turno.id, {});
-          return { ...actualizado, google_event_id: eventId } as Turno;
+          // Persistir el event id para poder sincronizar cancelaciones/reprogramaciones después.
+          return await turnoRepo.actualizar(organizacion.id, turno.id, { google_event_id: eventId });
         } catch (err) {
           console.error("Sync Google falló (turno creado igual):", err);
         }

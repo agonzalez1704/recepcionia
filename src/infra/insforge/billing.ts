@@ -101,6 +101,11 @@ export async function chequearAgente(
   conversacionesUsadas: number,
   entornoStripe: "test" | "live" = "test",
 ): Promise<ChequeoAgente> {
+  // Bypass de gating para pruebas (env BILLING_DISABLED=true). No fabrica
+  // suscripción: simplemente habilita el agente sin chequear billing.
+  if (getServerEnv().BILLING_DISABLED === "true") {
+    return { permitido: true, plan: null, usadas: conversacionesUsadas, tope: null };
+  }
   const billing = await obtenerEstadoBilling(admin, orgId, entornoStripe);
   if (!billing.activo || !billing.plan) {
     return { permitido: false, motivo: "sin_suscripcion", plan: billing.plan, usadas: conversacionesUsadas, tope: billing.plan?.topeConversaciones ?? null };

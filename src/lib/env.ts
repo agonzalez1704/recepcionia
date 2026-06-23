@@ -29,6 +29,8 @@ const serverSchema = z.object({
   STRIPE_PRICE_ESENCIAL: z.string().optional().default(""),
   STRIPE_PRICE_PROFESIONAL: z.string().optional().default(""),
   STRIPE_PRICE_CLINICA: z.string().optional().default(""),
+  // Bypass de gating de billing (solo pruebas)
+  BILLING_DISABLED: z.string().optional().default(""),
 });
 
 const publicSchema = z.object({

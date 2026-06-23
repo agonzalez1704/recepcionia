@@ -1,7 +1,7 @@
 import { parseISO } from "date-fns";
 import { toZonedTime, format as formatTz } from "date-fns-tz";
 import { calcularSlotsLibres, formatearSlotLocal } from "@/core/services/disponibilidad";
-import { TurnoSolapadoError, type AgendarTurnoService } from "@/core/services/agendar-turno-service";
+import { TurnoSolapadoError, MiembroRequeridoError, type AgendarTurnoService } from "@/core/services/agendar-turno-service";
 import { obtenerOcupadosExternos } from "@/core/services/ocupados-externos";
 import type { TurnoRepo } from "@/core/ports/repos";
 import type { ToolDef, ToolContext } from "@/core/ports/ia";
@@ -184,6 +184,8 @@ export function agendarTurnoTool(deps: DepsTools): ToolDef<
         };
       } catch (err) {
         if (err instanceof TurnoSolapadoError) return { ok: false, mensaje: "Ese horario ya está ocupado." };
+        if (err instanceof MiembroRequeridoError)
+          return { ok: false, mensaje: "Falta asignar un profesional. Preguntale al paciente con qué profesional quiere la cita y volvé a llamar a esta tool con el parámetro 'miembro'." };
         throw err;
       }
     },

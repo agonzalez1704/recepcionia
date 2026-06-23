@@ -32,6 +32,12 @@ export class TurnoSolapadoError extends Error {
   }
 }
 
+export class MiembroRequeridoError extends Error {
+  constructor() {
+    super("Hay que asignar un profesional a la cita");
+  }
+}
+
 function resolverServicio(org: Organizacion, nombre?: string): { nombre: string; duracion_min: number } {
   if (!nombre) {
     const primero = org.servicios[0];
@@ -52,6 +58,11 @@ export function crearAgendarTurnoService(deps: AgendarTurnoDeps) {
 
   return {
     async agendar(input: AgendarInput): Promise<Turno> {
+      // Regla dura: si la clínica tiene profesionales activos, toda cita debe
+      // quedar asignada a uno. Solo se permite sin miembro cuando no hay ninguno.
+      const hayMiembrosActivos = (deps.miembros ?? []).some((m) => m.activo);
+      if (hayMiembrosActivos && !input.miembro_id) throw new MiembroRequeridoError();
+
       const servicio = resolverServicio(organizacion, input.servicio);
       const solapa = await turnoRepo.haySolapamiento(organizacion.id, input.fecha_turno, servicio.duracion_min, {
         miembroId: input.miembro_id ?? null,

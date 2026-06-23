@@ -53,14 +53,31 @@ export function OnboardingClient() {
 
   async function crearClinica(nombre: string) {
     if (!createOrganization || !user) return;
+
+    // Lock anti-duplicado: sobrevive a remontes del componente y a doble submit
+    // (la ref `inicializado` se reinicia al remontar y dejaba crear 2 orgs).
+    const lockKey = `recepcionia:creando-org:${user.id}`;
+    if (typeof window !== "undefined" && sessionStorage.getItem(lockKey)) return;
+    if (typeof window !== "undefined") sessionStorage.setItem(lockKey, "1");
+
     setEstado("creando");
     setError(null);
     try {
+      // Si una org ya existe (carrera con un alta previa), usala en vez de crear otra.
+      await userMemberships?.revalidate?.();
+      const yaExiste = (userMemberships?.data ?? [])[0];
+      if (yaExiste) {
+        await setActive({ organization: yaExiste.organization.id });
+        router.replace("/configuracion");
+        return;
+      }
+
       const org = await createOrganization({ name: nombre });
       await setActive({ organization: org.id });
       await user.update({ unsafeMetadata: { ...user.unsafeMetadata, nombre_clinica: undefined } });
       router.replace("/configuracion");
     } catch (err) {
+      if (typeof window !== "undefined") sessionStorage.removeItem(lockKey); // permitir reintento
       setError(err instanceof Error ? err.message : "No pudimos crear tu clínica");
       setEstado("error");
     }

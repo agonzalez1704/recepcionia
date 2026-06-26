@@ -9,6 +9,7 @@ import {
   MessageCircle,
   CalendarDays,
   Users,
+  UserSearch,
   Settings,
   Plug,
   CreditCard,
@@ -28,6 +29,7 @@ const GRUPOS: Grupo[] = [
     items: [
       { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
       { href: "/mensajes", label: "Mensajes", icon: MessageCircle },
+      { href: "/leads", label: "Leads", icon: UserSearch },
       { href: "/turnos", label: "Turnos", icon: CalendarDays },
     ],
   },
@@ -100,7 +102,7 @@ function SidebarInterno({ onNavigate }: { onNavigate?: () => void }) {
   return (
     <div className="flex h-full flex-col bg-gradient-to-b from-brand-900 to-brand-950">
       <div className="flex items-center px-4 py-5">
-        <Logo chip height={30} />
+        <Logo chip height={50} />
       </div>
       <NavItems onNavigate={onNavigate} />
       <div className="mt-auto border-t border-white/10 p-3">

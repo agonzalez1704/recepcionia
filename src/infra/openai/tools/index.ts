@@ -178,6 +178,15 @@ export function agendarTurnoTool(deps: DepsTools): ToolDef<
           notas: input.notas,
           miembro_id: miembroObj?.id ?? null,
         });
+        // Lead convertido: registrar resultado + nombre + turno en la conversación.
+        try {
+          await deps.conversacionRepo.marcarResultado(ctx.organizacion.id, ctx.numeroPaciente, "agendo", {
+            turnoId: turno.id,
+            nombre: input.nombre_paciente,
+          });
+        } catch (err) {
+          console.error("No se pudo registrar resultado de la conversación:", err);
+        }
         const conMiembro = miembroObj ? ` con ${miembroObj.nombre}` : "";
         return {
           ok: true,
@@ -263,6 +272,11 @@ export function derivarAHumanoTool(deps: DepsTools): ToolDef<{ motivo: string },
     },
     async ejecutar({ motivo }, ctx) {
       await deps.conversacionRepo.marcarHumano(ctx.organizacion.id, ctx.numeroPaciente, motivo);
+      try {
+        await deps.conversacionRepo.marcarResultado(ctx.organizacion.id, ctx.numeroPaciente, "derivado");
+      } catch (err) {
+        console.error("No se pudo registrar derivación:", err);
+      }
       return { ok: true, mensaje: "Conversación derivada al equipo de la clínica. El asistente queda en pausa con este paciente." };
     },
   };

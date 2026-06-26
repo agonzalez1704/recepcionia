@@ -1,14 +1,15 @@
 import { MensajesView } from "./view";
+import { PageHeader } from "@/components/shared/page-header";
 
 export const dynamic = "force-dynamic";
 
 export default function MensajesPage() {
   return (
     <div className="space-y-6">
-      <header>
-        <h1 className="text-2xl font-bold">Mensajes</h1>
-        <p className="text-sm text-slate-600">Conversaciones de la IA con tus pacientes. Se actualiza cada 5 segundos.</p>
-      </header>
+      <PageHeader
+        titulo="Mensajes"
+        descripcion="Conversaciones de la IA con tus pacientes. Se actualiza cada 5 segundos."
+      />
       <MensajesView />
     </div>
   );

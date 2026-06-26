@@ -3,6 +3,7 @@ import { Settings, MessageSquare, Calendar, Plug, Users, AlertTriangle } from "l
 import { getActiveContextOrThrow } from "@/lib/tenant";
 import { getInsforgeAdmin } from "@/lib/insforge-admin";
 import { crearTurnoRepo } from "@/infra/insforge/repos/turno-repo";
+import { PageHeader } from "@/components/shared/page-header";
 import { ProximosTurnos } from "./proximos-turnos";
 
 export const dynamic = "force-dynamic";
@@ -17,12 +18,10 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-8">
-      <header>
-        <h1 className="text-2xl font-bold">Hola, {org.nombre_clinica}</h1>
-        <p className="text-sm text-slate-600">
-          Panel de control. Configurá tu clínica, conectá tus integraciones y revisá mensajes y turnos.
-        </p>
-      </header>
+      <PageHeader
+        titulo={`Hola, ${org.nombre_clinica}`}
+        descripcion="Panel de control. Configurá tu clínica, conectá tus integraciones y revisá mensajes y turnos."
+      />
 
       {aReagendar.length > 0 && (
         <div className="flex items-start gap-3 rounded-2xl border border-orange-300 bg-orange-50 p-4 text-sm text-orange-900">

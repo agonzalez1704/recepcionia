@@ -1,9 +1,10 @@
 import { SignIn } from "@clerk/nextjs";
+import { AuthSplit } from "@/components/shared/auth-split";
 
 export default function Page() {
   return (
-    <main className="flex flex-1 items-center justify-center bg-brand-50 p-6">
+    <AuthSplit>
       <SignIn path="/sign-in" signUpUrl="/sign-up" forceRedirectUrl="/dashboard" />
-    </main>
+    </AuthSplit>
   );
 }

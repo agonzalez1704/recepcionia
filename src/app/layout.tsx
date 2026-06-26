@@ -61,7 +61,20 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <ClerkProvider>
+    <ClerkProvider
+      appearance={{
+        variables: {
+          colorPrimary: "#1C6AC0",
+          colorText: "#182C61",
+          borderRadius: "0.75rem",
+          fontFamily: "var(--font-jakarta), system-ui, sans-serif",
+        },
+        elements: {
+          formButtonPrimary: "bg-brand-600 hover:bg-brand-700 text-white",
+          card: "shadow-xl shadow-brand-900/5",
+        },
+      }}
+    >
       <html lang="es" className={`${jakarta.variable} ${inter.variable} ${instrument.variable} h-full antialiased`}>
         <body className="min-h-full flex flex-col font-sans bg-white text-slate-900">
           <QueryProvider>{children}</QueryProvider>

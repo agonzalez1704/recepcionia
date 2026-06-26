@@ -8,10 +8,20 @@ import { crearMensajeRepo } from "@/infra/insforge/repos/mensaje-repo";
 import { construirProcesador } from "@/infra/agente/runtime";
 import { chequearAgente, inicioMesActualIso } from "@/infra/insforge/billing";
 import { crearWebhookMensajes, enviarTexto } from "@/infra/kapso/client";
+import { transcribirAudio } from "@/infra/openai/transcribir";
 import type { AdjuntoEntrante } from "@/core/ports/ia";
 
+export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
+
+// Handshake de verificación (GET de Kapso/Meta) para marcar el webhook verificado.
+export async function GET(req: Request) {
+  const url = new URL(req.url);
+  const challenge = url.searchParams.get("hub.challenge") ?? url.searchParams.get("challenge");
+  if (challenge) return new Response(challenge, { status: 200 });
+  return new Response("ok", { status: 200 });
+}
 
 function firmaValida(secret: string, raw: string, firma: string | null): boolean {
   if (!secret || !firma) return false;
@@ -47,9 +57,37 @@ async function extraerMensaje(ev: Record<string, unknown>, apiKey: string): Prom
   const numeroPaciente = conv.phone_number ?? "";
 
   const esAudio = msg.type === "audio";
-  const transcript = msg.kapso?.transcript?.text;
   let contenido = msg.text?.body ?? "";
-  if (esAudio && transcript) contenido = transcript;
+  let vozTranscrita = false;
+
+  // Notas de voz: Kapso a veces adjunta el transcript; si no, descargamos el
+  // audio y lo transcribimos con Whisper.
+  if (esAudio) {
+    const transcript = msg.kapso?.transcript?.text;
+    if (transcript) {
+      contenido = transcript;
+      vozTranscrita = true;
+    } else if (msg.kapso?.media_url) {
+      try {
+        const r = await fetch(msg.kapso.media_url, {
+          headers: { "X-API-Key": apiKey },
+          signal: AbortSignal.timeout(15_000),
+        });
+        if (r.ok) {
+          const mime = msg.kapso.media_data?.content_type ?? r.headers.get("content-type") ?? "audio/ogg";
+          const buf = Buffer.from(await r.arrayBuffer());
+          const t = await transcribirAudio(buf, mime);
+          if (t) {
+            contenido = t;
+            vozTranscrita = true;
+          }
+        }
+      } catch (err) {
+        console.error("No se pudo transcribir audio Kapso:", err);
+      }
+    }
+  }
+
   if (!contenido && msg.kapso?.content) contenido = msg.kapso.content;
 
   const adjuntos: AdjuntoEntrante[] = [];
@@ -69,7 +107,7 @@ async function extraerMensaje(ev: Record<string, unknown>, apiKey: string): Prom
     }
   }
 
-  return { numeroPaciente, contenido, esVozTranscrita: esAudio && !!transcript, adjuntos };
+  return { numeroPaciente, contenido, esVozTranscrita: vozTranscrita, adjuntos };
 }
 
 export async function POST(req: Request) {

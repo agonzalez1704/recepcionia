@@ -1,3 +1,4 @@
+import { randomBytes } from "node:crypto";
 import { getServerEnv } from "@/lib/env";
 
 const META_VERSION = "v24.0";
@@ -78,16 +79,20 @@ export async function crearWebhookMensajes(
   phoneNumberId: string,
   webhookUrl: string,
 ): Promise<{ id: string; secret: string }> {
+  // La API real exige el envelope `whatsapp_webhook` y un `secret_key` (no puede
+  // ir vacío). Generamos el secret nosotros y lo devolvemos para guardarlo cifrado.
+  const secretKey = randomBytes(24).toString("hex");
   const r = await kapso<{ data: { id: string; secret_key?: string; secret?: string } }>(
     `/platform/v1/whatsapp/phone_numbers/${phoneNumberId}/webhooks`,
     {
       method: "POST",
       body: JSON.stringify({
-        webhook: {
+        whatsapp_webhook: {
           url: webhookUrl,
           events: EVENTOS_MENSAJE,
           kind: "kapso",
           payload_version: "v2",
+          secret_key: secretKey,
           buffer_enabled: true,
           buffer_window_seconds: 5,
           active: true,
@@ -95,7 +100,7 @@ export async function crearWebhookMensajes(
       }),
     },
   );
-  return { id: r.data.id, secret: r.data.secret_key ?? r.data.secret ?? "" };
+  return { id: r.data.id, secret: r.data.secret_key ?? r.data.secret ?? secretKey };
 }
 
 // ---------------- Send message (Meta proxy) ----------------

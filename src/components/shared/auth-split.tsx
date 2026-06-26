@@ -1,10 +1,10 @@
-import { Logo, LogoMark } from "@/components/shared/logo";
+import { Logo } from "@/components/shared/logo";
 import { MessageCircle, CalendarCheck, Stethoscope } from "lucide-react";
 
 const PUNTOS = [
   { icon: MessageCircle, texto: "Atiende WhatsApp 24/7 con el tono de tu clínica" },
   { icon: Stethoscope, texto: "Canaliza a cada paciente con el especialista correcto" },
-  { icon: CalendarCheck, texto: "Agenda y sincroniza turnos automáticamente" },
+  { icon: CalendarCheck, texto: "Agenda y sincroniza citas automáticamente" },
 ];
 
 /** Layout de autenticación en dos columnas: panel de marca + formulario Clerk. */
@@ -13,11 +13,11 @@ export function AuthSplit({ children }: { children: React.ReactNode }) {
     <main className="flex min-h-screen flex-1">
       {/* Panel de marca */}
       <div className="relative hidden w-1/2 overflow-hidden bg-gradient-to-br from-brand-900 via-brand-800 to-brand-950 lg:flex lg:flex-col lg:justify-between lg:p-12">
-        {/* Swooshes decorativos */}
-        <LogoMark className="pointer-events-none absolute -right-16 -top-16 h-80 w-80 opacity-20" />
-        <LogoMark className="pointer-events-none absolute -bottom-24 -left-20 h-96 w-96 opacity-10" />
+        {/* Halos decorativos suaves */}
+        <div className="pointer-events-none absolute -right-24 -top-24 h-80 w-80 rounded-full bg-cielo-400/20 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-28 -left-24 h-96 w-96 rounded-full bg-brand-600/30 blur-3xl" />
 
-        <Logo variant="word" inverted className="relative" />
+        <Logo chip height={34} className="relative" priority />
 
         <div className="relative max-w-md">
           <h1 className="font-sans text-3xl font-bold leading-tight text-white">
@@ -45,7 +45,7 @@ export function AuthSplit({ children }: { children: React.ReactNode }) {
       {/* Formulario */}
       <div className="flex w-full flex-col items-center justify-center bg-slate-50 px-6 py-12 lg:w-1/2">
         <div className="mb-8 lg:hidden">
-          <Logo variant="full" />
+          <Logo height={40} priority />
         </div>
         {children}
       </div>

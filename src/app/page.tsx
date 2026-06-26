@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Clock, Calendar, Bot, Check, MessageSquare, Shield, Users } from "lucide-react";
 import { PLANES } from "@/core/billing/planes";
 import { Hero } from "./(marketing)/hero";
+import { Logo } from "@/components/shared/logo";
 
 const FAQ = [
   {
@@ -271,10 +272,10 @@ export default function LandingPage() {
       </section>
 
       <footer className="border-t border-slate-100 py-10 text-center text-sm text-slate-500">
-        <p className="font-inter font-bold text-slate-700">
-          Recepción<span className="text-brand-600">.</span>IA
-        </p>
-        <p className="mt-2">© {new Date().getFullYear()} — Hecho con cariño para profesionales de la salud.</p>
+        <div className="flex justify-center">
+          <Logo height={34} />
+        </div>
+        <p className="mt-3">© {new Date().getFullYear()} GastroCare — Salud digestiva integral.</p>
       </footer>
     </main>
   );

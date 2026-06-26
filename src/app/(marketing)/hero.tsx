@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, Menu, X, Check, CheckCheck } from "lucide-react";
+import { Logo } from "@/components/shared/logo";
 
 const HLS_SRC = "https://stream.mux.com/tLkHO1qZoaaQOUeVWo8hEBeGQfySP02EPS02BmnNFyXys.m3u8";
 
@@ -150,8 +151,8 @@ export function Hero() {
 
       {/* Nav */}
       <nav className="relative z-20 mx-auto flex max-w-7xl items-center justify-between px-6 py-6">
-        <Link href="/" className="font-inter text-lg font-bold tracking-tight text-slate-900">
-          Recepción<span className="text-brand-600">.</span>IA
+        <Link href="/" className="flex items-center">
+          <Logo height={34} priority />
         </Link>
         <div className="hidden items-center gap-8 md:flex">
           {NAV.map((l) => (
@@ -172,9 +173,7 @@ export function Hero() {
       {menuAbierto && (
         <div className="fixed inset-0 z-50 flex flex-col bg-white/98 backdrop-blur-md md:hidden">
           <div className="flex items-center justify-between px-6 py-6">
-            <span className="font-inter text-lg font-bold text-slate-900">
-              Recepción<span className="text-brand-600">.</span>IA
-            </span>
+            <Logo height={30} />
             <button onClick={() => setMenuAbierto(false)} aria-label="Cerrar menú">
               <X className="h-6 w-6 text-slate-900" />
             </button>

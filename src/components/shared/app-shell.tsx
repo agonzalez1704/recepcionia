@@ -99,8 +99,8 @@ function NavItems({ onNavigate }: { onNavigate?: () => void }) {
 function SidebarInterno({ onNavigate }: { onNavigate?: () => void }) {
   return (
     <div className="flex h-full flex-col bg-gradient-to-b from-brand-900 to-brand-950">
-      <div className="flex items-center gap-2 px-5 py-5">
-        <Logo variant="word" inverted />
+      <div className="flex items-center px-4 py-5">
+        <Logo chip height={30} />
       </div>
       <NavItems onNavigate={onNavigate} />
       <div className="mt-auto border-t border-white/10 p-3">
@@ -177,7 +177,7 @@ export function AppShell({
           >
             <Menu className="h-5 w-5" />
           </button>
-          <Logo variant="word" />
+          <Logo height={26} />
           <UserButton />
         </header>
 

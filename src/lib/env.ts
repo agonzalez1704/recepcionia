@@ -15,10 +15,6 @@ const serverSchema = z.object({
   GOOGLE_REDIRECT_URI: z.string().url().optional().default("http://localhost:3000/api/oauth/google/callback"),
   APP_BASE_URL: z.string().url().default("http://localhost:3000"),
   NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
-  // Twilio (cuenta parent ISV) — un solo par de credenciales para todos los tenants
-  TWILIO_ACCOUNT_SID: z.string().optional().default(""),
-  TWILIO_AUTH_TOKEN: z.string().optional().default(""),
-  TWILIO_WABA_ID: z.string().optional().default(""),
   CRON_SECRET: z.string().optional().default(""),
   // Kapso (WhatsApp platform)
   KAPSO_API_KEY: z.string().optional().default(""),

@@ -7,11 +7,11 @@ import { Logo } from "@/components/shared/logo";
 const FAQ = [
   {
     q: "¿Cómo conecto mi WhatsApp?",
-    a: "Usamos Twilio como proveedor oficial de WhatsApp Business. Te damos los pasos en la sección de Integraciones del dashboard: copiás un par de credenciales de tu cuenta Twilio (o creás una gratis) y listo.",
+    a: "Desde la sección de Integraciones del dashboard generás un enlace de conexión y vinculás tu número de WhatsApp Business en unos minutos. Si ya tenés un número en uso, te ayudamos a migrarlo sin perder tus chats.",
   },
   {
     q: "¿Cuánto cuesta cada conversación?",
-    a: "Las conversaciones de WhatsApp tienen un costo bajo cobrado por Meta (varía por país, ~$0.01-$0.05 USD). Twilio agrega un pequeño markup. Para volumen alto recomendamos migrar a un BSP especializado.",
+    a: "Las conversaciones de WhatsApp tienen un costo bajo cobrado por Meta (varía por país, ~$0.01-$0.05 USD). Ya está incluido en tu plan según el tope mensual de conversaciones; no necesitás contratar nada aparte.",
   },
   {
     q: "¿Cada profesional tiene su propia agenda?",

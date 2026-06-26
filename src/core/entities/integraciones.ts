@@ -13,11 +13,9 @@ export type EstadoSender = z.infer<typeof EstadoSenderSchema>;
 export const IntegracionWhatsAppSchema = z.object({
   id: z.string().uuid(),
   organizacion_id: z.string().uuid(),
-  proveedor: z.string().default("twilio"),
-  numero_whatsapp: z.string(),
-  // Modelo ISV: estos quedan null (usamos parent token). Compat con modelo viejo.
-  twilio_account_sid: z.string().nullable().optional(),
-  twilio_auth_token: z.string().nullable().optional(),
+  proveedor: z.string().default("kapso"),
+  numero_whatsapp: z.string().nullable().optional(),
+  // Columnas legacy (modelo viejo) — se mantienen nullable por compat de datos.
   sender_sid: z.string().nullable().optional(),
   telefono_sid: z.string().nullable().optional(),
   pais: z.string().nullable().optional(),

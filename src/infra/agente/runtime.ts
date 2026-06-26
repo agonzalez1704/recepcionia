@@ -19,7 +19,7 @@ import { resolverCalendarProvider } from "@/infra/google/calendar";
 
 /**
  * Arma el stack del agente (repos + tools + IA + procesador) para una org.
- * Compartido por los webhooks de Twilio y Kapso.
+ * Usado por el webhook de Kapso (WhatsApp).
  */
 export async function construirProcesador(admin: InsForgeClient, org: Organizacion) {
   const turnoRepo = crearTurnoRepo(admin);

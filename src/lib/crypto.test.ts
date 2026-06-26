@@ -14,7 +14,7 @@ beforeAll(() => {
 describe("crypto", () => {
   it("encripta y desencripta round-trip", async () => {
     const { encriptar, desencriptar } = await import("./crypto");
-    const plain = "secret-twilio-token-abc123";
+    const plain = "secret-webhook-token-abc123";
     const enc = encriptar(plain);
     expect(enc).not.toBe(plain);
     expect(desencriptar(enc)).toBe(plain);

@@ -207,7 +207,14 @@ export async function POST(req: Request) {
     // Handoff: si un humano del equipo tomó la conversación, el bot queda en
     // pausa. Guardamos el mensaje del paciente (para que el historial quede
     // completo) pero no respondemos: lo atiende el staff por el mismo número.
-    if ((await conversacionRepo.estado(org.id, numeroPaciente)) === "humano") {
+    // Tolerante a que la tabla no exista aún (default 'bot').
+    let estadoConv: "bot" | "humano" = "bot";
+    try {
+      estadoConv = await conversacionRepo.estado(org.id, numeroPaciente);
+    } catch (err) {
+      console.error("Estado de conversación no disponible (¿migración pendiente?):", err);
+    }
+    if (estadoConv === "humano") {
       await mensajeRepo.crear(org.id, {
         numero_telefono: numeroPaciente,
         contenido: contenido || "(mensaje sin texto)",

@@ -15,7 +15,8 @@ import {
 } from "date-fns";
 import { toZonedTime, format as formatTz } from "date-fns-tz";
 import { es } from "date-fns/locale";
-import { Calendar as CalIcon, List, ChevronLeft, ChevronRight, X, Check, Lock } from "lucide-react";
+import { Calendar as CalIcon, List, ChevronLeft, ChevronRight, X, Check } from "lucide-react";
+import { GoogleIcon } from "@/components/shared/google-icon";
 import { apiFetch } from "@/components/shared/api";
 import { EstadoBadge } from "@/components/shared/estado-badge";
 import { cn } from "@/lib/utils";
@@ -336,7 +337,7 @@ function OcupadoCard({
       title="Bloque externo de Google Calendar"
     >
       <div className="flex items-center gap-2 text-sm text-slate-600">
-        <Lock className="h-3.5 w-3.5" />
+        <GoogleIcon className="h-4 w-4 shrink-0" />
         <span className="font-medium">{horaInicio} – {horaFin}</span>
         <span className="text-slate-500">Ocupado</span>
         {miembro && (

@@ -202,7 +202,20 @@ export async function POST(req: Request) {
     const usadas = await crearMensajeRepo(admin).contarEntrantesDesde(org.id, inicioMesActualIso());
     const chequeo = await chequearAgente(admin, org.id, usadas, env.STRIPE_ENV);
 
-    const { procesar, mensajeRepo } = await construirProcesador(admin, org);
+    const { procesar, mensajeRepo, conversacionRepo } = await construirProcesador(admin, org);
+
+    // Handoff: si un humano del equipo tomó la conversación, el bot queda en
+    // pausa. Guardamos el mensaje del paciente (para que el historial quede
+    // completo) pero no respondemos: lo atiende el staff por el mismo número.
+    if ((await conversacionRepo.estado(org.id, numeroPaciente)) === "humano") {
+      await mensajeRepo.crear(org.id, {
+        numero_telefono: numeroPaciente,
+        contenido: contenido || "(mensaje sin texto)",
+        remitente: "paciente",
+        metadatos: { handoff: true },
+      });
+      return new Response(null, { status: 200 });
+    }
 
     if (!chequeo.permitido) {
       await mensajeRepo.crear(org.id, {

@@ -7,11 +7,13 @@ import type { TurnoRepo } from "@/core/ports/repos";
 import type { ToolDef, ToolContext } from "@/core/ports/ia";
 import type { Organizacion } from "@/core/entities/organizacion";
 import type { Miembro } from "@/core/entities/miembro";
+import type { ConversacionRepo } from "@/infra/insforge/repos/conversacion-repo";
 
 type DepsTools = {
   turnoRepo: TurnoRepo;
   agendarService: AgendarTurnoService;
   miembros: Miembro[];
+  conversacionRepo: ConversacionRepo;
 };
 
 function formatearFechaLocal(iso: string, tz: string): string {
@@ -242,4 +244,26 @@ function resolverDuracion(org: Organizacion, servicioNombre?: string): number {
   if (!servicioNombre) return org.servicios[0]?.duracion_min ?? 30;
   const s = org.servicios.find((x) => x.nombre.toLowerCase() === servicioNombre.toLowerCase());
   return s?.duracion_min ?? 30;
+}
+
+// =================== derivar_a_humano ===================
+
+export function derivarAHumanoTool(deps: DepsTools): ToolDef<{ motivo: string }, { ok: boolean; mensaje: string }> {
+  return {
+    nombre: "derivar_a_humano",
+    descripcion:
+      "Deriva la conversación a una persona del equipo de la clínica y PAUSA al asistente. Llamá a esta tool SOLO cuando: (a) el paciente pide explícitamente hablar con una persona/recepción/secretaria/doctor, (b) es una urgencia médica o un reclamo que requiere a alguien del equipo, o (c) no podés resolver lo que necesita con tus otras herramientas. Después de llamarla, despedite con calidez avisando que el equipo lo va a contactar; no sigas intentando resolverlo vos.",
+    parametros: {
+      type: "object",
+      properties: {
+        motivo: { type: "string", description: "Resumen breve de por qué se deriva (ej. 'pidió hablar con recepción', 'urgencia: dolor agudo', 'reclamo por cobro')." },
+      },
+      required: ["motivo"],
+      additionalProperties: false,
+    },
+    async ejecutar({ motivo }, ctx) {
+      await deps.conversacionRepo.marcarHumano(ctx.organizacion.id, ctx.numeroPaciente, motivo);
+      return { ok: true, mensaje: "Conversación derivada al equipo de la clínica. El asistente queda en pausa con este paciente." };
+    },
+  };
 }

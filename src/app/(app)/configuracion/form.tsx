@@ -3,9 +3,12 @@
 import { useEffect, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Plus, Trash2, Globe, Sparkles, Loader2, Check } from "lucide-react";
+import { Plus, Trash2, Globe, Sparkles, Loader2 } from "lucide-react";
 import { apiFetch } from "@/components/shared/api";
 import type { Horario, Organizacion, Servicio } from "@/core/entities/organizacion";
+import { Section } from "./components/section";
+import { Field } from "./components/field";
+import { ProgresoImport, PASOS_IMPORT } from "./components/progreso-import";
 
 type ImportadoData = {
   nombre_clinica: string | null;
@@ -65,14 +68,6 @@ function fromOrg(o: Organizacion): Estado {
     servicios: o.servicios ?? [],
   };
 }
-
-const PASOS_IMPORT = [
-  "Conectando con el sitio…",
-  "Descargando contenido de la página…",
-  "Analizando texto con IA…",
-  "Extrayendo horarios y servicios…",
-  "Casi listo…",
-];
 
 export function ConfiguracionForm({ organizacion, readOnly }: { organizacion: Organizacion; readOnly: boolean }) {
   const [estado, setEstado] = useState<Estado>(() => fromOrg(organizacion));
@@ -428,82 +423,5 @@ export function ConfiguracionForm({ organizacion, readOnly }: { organizacion: Or
         </div>
       )}
     </form>
-  );
-}
-
-function Section({ titulo, children }: { titulo: string; children: React.ReactNode }) {
-  return (
-    <section className="space-y-4 rounded-2xl border border-slate-100 bg-white p-6 shadow-sm">
-      <h2 className="text-lg font-semibold">{titulo}</h2>
-      <div className="space-y-4">{children}</div>
-    </section>
-  );
-}
-
-function ProgresoImport({ pasoIdx }: { pasoIdx: number }) {
-  return (
-    <div className="mt-4 space-y-3 rounded-xl border border-brand-200 bg-white p-4">
-      <ul className="space-y-1.5">
-        {PASOS_IMPORT.map((paso, i) => {
-          const completado = i < pasoIdx;
-          const actual = i === pasoIdx;
-          return (
-            <li key={paso} className="flex items-center gap-2 text-sm">
-              <span className="flex h-5 w-5 shrink-0 items-center justify-center">
-                {completado ? (
-                  <Check className="h-4 w-4 text-emerald-600" />
-                ) : actual ? (
-                  <Loader2 className="h-4 w-4 animate-spin text-brand-700" />
-                ) : (
-                  <span className="h-2 w-2 rounded-full bg-slate-300" />
-                )}
-              </span>
-              <span
-                className={
-                  completado
-                    ? "text-slate-500 line-through"
-                    : actual
-                      ? "font-medium text-brand-900"
-                      : "text-slate-400"
-                }
-              >
-                {paso}
-              </span>
-            </li>
-          );
-        })}
-      </ul>
-      <div className="h-1.5 overflow-hidden rounded-full bg-slate-100">
-        <div
-          className="h-full bg-brand-600 transition-all duration-500"
-          style={{ width: `${Math.min(((pasoIdx + 1) / PASOS_IMPORT.length) * 100, 95)}%` }}
-        />
-      </div>
-      <p className="text-xs text-slate-500">
-        Esto puede tardar 10-20 segundos según el tamaño de la página. No cierres la pestaña.
-      </p>
-    </div>
-  );
-}
-
-function Field({
-  label,
-  hint,
-  required,
-  children,
-}: {
-  label: string;
-  hint?: string;
-  required?: boolean;
-  children: React.ReactNode;
-}) {
-  return (
-    <label className="block space-y-1.5">
-      <span className="text-sm font-medium text-slate-700">
-        {label} {required && <span className="text-red-500">*</span>}
-      </span>
-      {children}
-      {hint && <span className="block text-xs text-slate-500">{hint}</span>}
-    </label>
   );
 }

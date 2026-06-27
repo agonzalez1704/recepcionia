@@ -1,115 +1,17 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
-import { ArrowRight, Menu, X, Check, CheckCheck } from "lucide-react";
+import { ArrowRight, Menu, X } from "lucide-react";
 import { Logo } from "@/components/shared/logo";
-
-const HLS_SRC = "https://stream.mux.com/tLkHO1qZoaaQOUeVWo8hEBeGQfySP02EPS02BmnNFyXys.m3u8";
+import { VideoFondo } from "./components/video-fondo";
+import { ChatWhatsApp } from "./components/chat-whatsapp";
 
 const NAV = [
   { label: "Cómo funciona", href: "#como-funciona" },
   { label: "Precios", href: "#precios" },
   { label: "FAQ", href: "#faq" },
 ];
-
-// Conversación real (condensada) de la base de datos — triage + reagendado + confirmación.
-type Burbuja = { de: "paciente" | "asistente"; texto: string; hora: string };
-const CHAT: Burbuja[] = [
-  { de: "paciente", texto: "Buenas tardes, me gustaría sacar una cita con el dr memo para mañana", hora: "18:47" },
-  {
-    de: "asistente",
-    texto:
-      "Revisé de nuevo y el Dr. Guillermo Carmona sí tiene lugar mañana jueves 28. Te puedo ofrecer 9:00, 11:30 o 15:00. ¿Cuál preferís? 😊",
-    hora: "18:51",
-  },
-  { de: "paciente", texto: "11:30 perfecto", hora: "18:52" },
-  {
-    de: "asistente",
-    texto: "¡Listo! Te agendé con el Dr. Carmona mañana 28 a las 11:30 hs. Te esperamos 🙌",
-    hora: "18:52",
-  },
-];
-
-function VideoFondo() {
-  const ref = useRef<HTMLVideoElement>(null);
-
-  useEffect(() => {
-    const video = ref.current;
-    if (!video) return;
-    if (video.canPlayType("application/vnd.apple.mpegurl")) {
-      video.src = HLS_SRC;
-      void video.play().catch(() => {});
-      return;
-    }
-    let hls: import("hls.js").default | null = null;
-    let cancelado = false;
-    (async () => {
-      const Hls = (await import("hls.js")).default;
-      if (cancelado) return;
-      if (Hls.isSupported()) {
-        hls = new Hls({ enableWorker: false });
-        hls.loadSource(HLS_SRC);
-        hls.attachMedia(video);
-        hls.on(Hls.Events.MANIFEST_PARSED, () => void video.play().catch(() => {}));
-      }
-    })();
-    return () => {
-      cancelado = true;
-      hls?.destroy();
-    };
-  }, []);
-
-  return (
-    <video
-      ref={ref}
-      muted
-      loop
-      playsInline
-      autoPlay
-      preload="auto"
-      className="absolute inset-0 h-full w-full object-cover opacity-[0.6]"
-    />
-  );
-}
-
-function ChatWhatsApp() {
-  return (
-    <div className="glass-light relative w-full max-w-sm overflow-hidden rounded-3xl">
-      <div className="flex items-center gap-3 border-b border-slate-200/70 bg-white/60 px-4 py-3">
-        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-100 text-sm font-bold text-brand-700">
-          C
-        </div>
-        <div className="min-w-0">
-          <p className="truncate text-sm font-semibold text-slate-900">Clínica Carmona</p>
-          <p className="text-[11px] text-brand-600">en línea</p>
-        </div>
-      </div>
-
-      <div className="space-y-2 px-3 py-4">
-        {CHAT.map((b, i) => {
-          const esPaciente = b.de === "paciente";
-          return (
-            <div key={i} className={`flex ${esPaciente ? "justify-start" : "justify-end"}`}>
-              <div
-                className={`max-w-[82%] rounded-2xl px-3 py-2 text-[13px] leading-snug ${
-                  esPaciente ? "bg-slate-100 text-slate-800" : "bg-brand-50 text-brand-900"
-                }`}
-              >
-                <p className="whitespace-pre-wrap">{b.texto}</p>
-                <span className="mt-1 flex items-center justify-end gap-1 text-[10px] text-slate-400">
-                  {b.hora}
-                  {!esPaciente && <CheckCheck className="h-3 w-3 text-brand-600" />}
-                  {esPaciente && <Check className="h-3 w-3" />}
-                </span>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
 
 export function Hero() {
   const [menuAbierto, setMenuAbierto] = useState(false);

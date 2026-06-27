@@ -3,6 +3,9 @@ import { Clock, Calendar, Bot, Check, MessageSquare, Shield, Users } from "lucid
 import { PLANES } from "@/core/billing/planes";
 import { Hero } from "./(marketing)/hero";
 import { Logo } from "@/components/shared/logo";
+import { Eyebrow } from "./(marketing)/components/eyebrow";
+import { Titulo } from "./(marketing)/components/titulo";
+import { Subtitulo } from "./(marketing)/components/subtitulo";
 
 const FAQ = [
   {
@@ -279,22 +282,4 @@ export default function LandingPage() {
       </footer>
     </main>
   );
-}
-
-function Eyebrow({ children }: { children: React.ReactNode }) {
-  return (
-    <p className="text-center font-sans text-[11px] font-bold uppercase tracking-[0.2em] text-brand-600">{children}</p>
-  );
-}
-
-function Titulo({ children }: { children: React.ReactNode }) {
-  return (
-    <h2 className="mt-3 text-center font-inter text-3xl font-extrabold uppercase tracking-tight text-slate-900 sm:text-4xl">
-      {children}
-    </h2>
-  );
-}
-
-function Subtitulo({ children }: { children: React.ReactNode }) {
-  return <p className="mx-auto mt-3 max-w-2xl text-center text-slate-600">{children}</p>;
 }

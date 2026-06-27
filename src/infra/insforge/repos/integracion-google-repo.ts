@@ -81,5 +81,10 @@ export function crearIntegracionGoogleRepo(client: InsForgeClient) {
       const { error } = await tabla().delete().eq("id", id);
       if (error) throw error;
     },
+    /** Marca la integración como inactiva (ej. refresh token revocado). */
+    async desactivar(id: string): Promise<void> {
+      const { error } = await tabla().update({ activo: false }).eq("id", id);
+      if (error) throw error;
+    },
   };
 }

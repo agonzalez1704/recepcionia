@@ -49,7 +49,19 @@ async function clienteAutenticado(integ: IntegracionGoogle): Promise<OAuth2Clien
       }
     } catch (err) {
       console.error("Refresh Google token falló:", err);
-      throw new Error("No se pudo refrescar el token de Google. Reconectá la integración.");
+      // invalid_grant = el refresh token está revocado/expirado (no se recupera).
+      // Desactivamos la integración para dejar de reintentar; el dashboard pedirá
+      // reconectar. Otros errores (red, 5xx) son transitorios: no desactivar.
+      const code = (err as { response?: { data?: { error?: string } } }).response?.data?.error;
+      if (code === "invalid_grant") {
+        try {
+          await crearIntegracionGoogleRepo(getInsforgeAdmin()).desactivar(integ.id);
+        } catch (e) {
+          console.error("No se pudo desactivar integración Google:", e);
+        }
+        throw new Error("La conexión con Google Calendar expiró. Reconectala desde Integraciones.");
+      }
+      throw new Error("No se pudo refrescar el token de Google. Probá de nuevo en unos minutos.");
     }
   }
 
